@@ -12,7 +12,6 @@
 #define _MU_BASE_H_
 
 #include "muTypes.h"
-//#include "muPlatform.h"
 
 /**********************************************\
 *          Operations on Arrays(Image)         *
