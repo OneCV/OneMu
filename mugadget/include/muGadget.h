@@ -12,7 +12,6 @@
 #define _MUGADGET_H_
 
 #include "muCore.h"
-#include "muAux.h"
 
 /* muDetectCamTampering()
 *
