@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------------- /
  *
  * Module: muGadget.h
- * Author: Joe Lin
+ * Author: Joe Lin, Chao-Ting Hong
  *
  * Description:
  *    define the video analytics functions
@@ -12,6 +12,7 @@
 #define _MUGADGET_H_
 
 #include "muCore.h"
+#include "muAux.h"
 
 /* muDetectCamTampering()
 *
@@ -30,10 +31,7 @@
 #define MU_CAM_OCCLUSION   0x02
 
 MU_API(MU_32S) muDetectCamTampering( const muImage_t* src, MU_32S flags, MU_32S sensitivity);
-
 /* end of muDetectCamTampering */
-
-
 
 /* the direction of muSADObjectCounting()*/
 #define MU_ONE_WAY 0x00
@@ -41,7 +39,7 @@ MU_API(MU_32S) muDetectCamTampering( const muImage_t* src, MU_32S flags, MU_32S 
 
 typedef enum
 {
-	MU_TRIPWIRE=1,  
+	MU_TRIPWIRE=1,
 	MU_HEADCOUNTING=2,
 }muTrackingAppMode_t;
 
@@ -262,83 +260,69 @@ typedef struct _muPtzTrackingAction
 
 }muPtzTrackingAction_t;
 
-/* CT Haar classifier  TODO rename and port to mu? */
-#define CT_HAAR_FEATURE_MAX  3
+/* Mu Simple Haar Cascade classifier */
+#define MU_HAAR_FEATURE_MAX  3
 
-typedef struct CtSize
-{
-    int width;
-    int height;
-} CtSize;
-
-typedef struct CtRect
-{
-	int x; 
-	int y;
-	int width;
-	int height;
-} CtRect;
-
-typedef struct CtHaarFeature
+typedef struct MuHaarFeature
 {
     int tilted;
 	struct
     {
-        CtRect r;
+        muRect_t r;
         float weight;
 		float ori_weight;
         int *p0, *p1, *p2, *p3;
     }
-    rect[CT_HAAR_FEATURE_MAX];
-} CtHaarFeature;
+    rect[MU_HAAR_FEATURE_MAX];
+} MuHaarFeature;
 
 
-typedef struct CtHaarTreeNode
+typedef struct MuHaarTreeNode
 {
-    CtHaarFeature feature;
+    MuHaarFeature feature;
     int two_rects;
     float threshold;
     float left;
     float right;
-} CtHaarTreeNode;
+} MuHaarTreeNode;
 
 
-typedef struct CtHaarClassifier
+typedef struct MuHaarClassifier
 {
     int count;
     //MuHaarFeature* orig_feature;
-    CtHaarTreeNode node;
+    MuHaarTreeNode node;
     //float* alpha;
-} CtHaarClassifier;
+} MuHaarClassifier;
 
 
-typedef struct CtHaarStageClassifier
+typedef struct MuHaarStageClassifier
 {
     int  count;
     float threshold;
-    CtHaarClassifier* classifier;
+    MuHaarClassifier* classifier;
     int two_rects;
 
-    struct CtHaarStageClassifier* next;
-    struct CtHaarStageClassifier* child;
-    struct CtHaarStageClassifier* parent;
-} CtHaarStageClassifier;
+    struct MuHaarStageClassifier* next;
+    struct MuHaarStageClassifier* child;
+    struct MuHaarStageClassifier* parent;
+} MuHaarStageClassifier;
 
 
-typedef struct CtHaarClassifierCascade
+typedef struct MuSimpleDetector
 {
     int  count;
     int  isStumpBased;
-	CtSize orig_window_size;
-    CtSize real_window_size;
+	muSize_t orig_window_size;
+    muSize_t real_window_size;
 	double scale;
     int  has_tilted_features;
     int  is_tree;
     double inv_window_area;
-    CtHaarStageClassifier* stage_classifier;
+    MuHaarStageClassifier* stage_classifier;
     double *pq0, *pq1, *pq2, *pq3;
     int *p0, *p1, *p2, *p3;
-} CtHaarClassifierCascade;
+} MuSimpleDetector;
 
 /*Mu Examinator structures*/
 typedef struct MuStatus
@@ -379,12 +363,12 @@ typedef struct MuExamData
 
 typedef struct MuDetector
 {
-	CtHaarClassifierCascade Cascade;
-	CtHaarStageClassifier CascadeStages[25];
-	CtHaarClassifier CascadeClassifiers[500];
+	MuSimpleDetector Cascade;
+	MuHaarStageClassifier CascadeStages[25];
+	MuHaarClassifier CascadeClassifiers[500];
 	muSeq_t *Objects;
 	muSeq_t *Tracks;
-	CtRect ScanROI;
+	muRect_t ScanROI;
 	MuStatus Status;
 	unsigned char Checked;
 	unsigned char HitNum;
@@ -395,15 +379,12 @@ typedef struct MuExaminator
 	MuExamData ExamData;
 	MuDetector Detector[10];
 	muIntegralImg_t *Itlmg;
-	//muLine_t ScanLine;
 	muRect_t ScanBar;
 } MuExaminator;
 /*End of mu examinator*/
 
 #define calc_sum(rect,offset) \
     ((rect).p0[offset] - (rect).p1[offset] - (rect).p2[offset] + (rect).p3[offset])
-
-#define  CT_IMIN(a, b)  ((a) ^ (((a)^(b)) & (((a) < (b)) - 1)))
 
 #define calc_sum(rect,offset) \
     ((rect).p0[offset] - (rect).p1[offset] - (rect).p2[offset] + (rect).p3[offset])
@@ -445,14 +426,19 @@ MU_API(muError_t) muBackgroundModelingReset();
 MU_API(muError_t) muBackgroundModelingRelease();
 
 /**Object Detection Function Headers**/
-MU_API(muSeq_t*) muObjectDetection(muImage_t* img, CtHaarClassifierCascade* cascade, double scaleFactor, int minNeighbors, int flags, muSize_t minSize, muSize_t maxSize);
-MU_API(MU_VOID) muObjectDetection1(muImage_t* img, muSeq_t* Objects, CtHaarClassifierCascade* cascade, double scaleFactor, int minNeighbors, int flags, muSize_t minSize, muSize_t maxSize);
-MU_API(MU_VOID) muObjectDetectionInit(CtHaarClassifierCascade* cascade, CtHaarStageClassifier *cascade_stages, CtHaarClassifier *cascade_classifiers, double *CascadeParaTable);
-/*Lightened object detection functions*/
+MU_API(MuSimpleDetector*) muLoadSimpleDetector(const char* filename);
+MU_API(MU_VOID) muReleaseSimpleDetector(MuSimpleDetector* Detector);
+MU_API(MU_VOID) muObjectDetectionInit(MuSimpleDetector* Detector, MuHaarStageClassifier *cascade_stages, MuHaarClassifier *cascade_classifiers, double *CascadeParaTable);
+
+/*Classic Object Detection Function*/
+MU_API(muSeq_t*) muObjectDetection(muImage_t* img, MuSimpleDetector* Detector, double scaleFactor, muSize_t minSize, muSize_t maxSize);
+
+/*Lightened Object Detection functions*/
 MU_API(muIntegralImg_t*) muIntegral_Light(muImage_t *img);
 MU_API(MU_VOID) muIntegral_LightRelease(muIntegralImg_t* Itlmg);
-MU_API(MU_VOID) muObjectDetection_Light(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSeq_t* Objects, CtHaarClassifierCascade* cascade, double scaleFactor, muSize_t minSize, muSize_t maxSize);
-MU_API(MU_VOID) muObjectDetection_SuperLight(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSeq_t* Objects, CtHaarClassifierCascade* cascade, muSize_t winSize);
+MU_API(MU_VOID) muObjectDetection_Light(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSeq_t* Objects, MuSimpleDetector* Detector, double scaleFactor, muSize_t minSize, muSize_t maxSize);
+MU_API(MU_VOID) muObjectDetection_SuperLight(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSeq_t* Objects, MuSimpleDetector* Detector, muSize_t winSize);
+MU_API(MU_VOID) muMergeRectangles(muSeq_t *Rectangles, int MergeObjDistTH, int HitNum);
 
 /**Examinator Function Headers**/
 MU_API(MU_VOID) Examinator_Init_Buf(MU_8U *buf, MuExaminator *Examinator);
