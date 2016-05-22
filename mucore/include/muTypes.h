@@ -1,12 +1,12 @@
-/* ------------------------------------------------------------------------- /
+/* ------------------------------------------------------------------------------- /
  *
  * Module: muType.h
- * Author: Joe Lin
+ * Author: Joe Lin, Chao-Ting Hong
  *
  * Description:
- *    define the image processing, structural analysis functions
+ *    define the image processing, structural analysis, object detection functions
  *
- -------------------------------------------------------------------------- */
+ -------------------------------------------------------------------------------- */
 
 
 #ifndef _MU_TYPES_H_
@@ -145,6 +145,7 @@ typedef enum _muResolution
 
 #define MU_MAX(a,b) a>=b?a:b
 #define MU_MIN(a,b) a<=b?a:b
+#define MU_IMIN(a,b) ((a) ^ (((a)^(b)) & (((a) < (b)) - 1)))
 
 #if defined WIN32 || defined WIN64
 #define	MU_DBG	printf

@@ -12,86 +12,6 @@
 #include "muGadget.h"
 
 /**Function**/
-/**Merge Function**/
-/*MergeObjDistTH: OverlapTH - 2 means 1/2, 3 means 1/3*/
-/*HitNum: TH for number of merged blocks*/
-void muMergeRectangles(muSeq_t *Rectangles, int MergeObjDistTH, int HitNum)
-{
-    int i, j, MergedNum;
-    int CrossArea, AreaMinX, AreaMaxX, AreaMinY, AreaMaxY;
-    int RecMaxX1, RecMaxX2, RecMinX1, RecMinX2;
-    int RecMaxY1, RecMaxY2, RecMinY1, RecMinY2;
-    long X, Y, Wid, Hei;
-    muSeqBlock_t *current1, *current2, *tmpBlock=NULL;
-    muRect_t *rectp1, *rectp2;
-
-    if(Rectangles != NULL)
-	{
-		current1 = Rectangles->first;
-		while(current1 != NULL)
-		{
-			rectp1 = (muRect_t *)current1->data;
-			X = RecMinX1 = rectp1->x;
-			Y = RecMinY1 = rectp1->y;
-			Wid = rectp1->width;
-			Hei = rectp1->height;
-			RecMaxX1 = RecMinX1 + Wid;
-			RecMaxY1 = RecMinY1 + Hei;
-			MergedNum = 1;
-			current2 = current1->next;
-			while(current2 != NULL)
-			{
-				rectp2 = (muRect_t *)current2->data;
-				RecMinX2 = rectp2->x;
-				RecMinY2 = rectp2->y;
-				RecMaxX2 = RecMinX2 + rectp2->width;
-				RecMaxY2 = RecMinY2 + rectp2->height;
-				tmpBlock=NULL;
-				//Sum of x, y, w, h; if overlapped
-				if(!(RecMaxX2<=RecMinX1 || RecMinX2>=RecMaxX1 ||
-                 RecMaxY2<=RecMinY1 || RecMinY2>=RecMaxY1 ))
-	            {
-	                AreaMinX = RecMinX2 > RecMinX1 ? RecMinX2 : RecMinX1;
-	                AreaMaxX = RecMaxX2 < RecMaxX1 ? RecMaxX2 : RecMaxX1;
-	                AreaMinY = RecMinY2 > RecMinY1 ? RecMinY2 : RecMinY1;
-	                AreaMaxY = RecMaxY2 < RecMaxY1 ? RecMaxY2 : RecMaxY1;
-	                CrossArea = (AreaMaxX - AreaMinX)*(AreaMaxY - AreaMinY);
-	                if(CrossArea!=0)
-	                if( rectp1->width*rectp1->height<MergeObjDistTH*CrossArea || rectp2->width*rectp2->height<MergeObjDistTH*CrossArea)
-	                {
-	                    /*rectp1->x = (rectp1->x + rectp2->x)/2;
-	                    rectp1->y = (rectp1->y + rectp2->y)/2;
-	                    rectp1->width = (rectp1->width + rectp2->width)/2;
-	                    rectp1->height = (rectp1->height + rectp2->height)/2;*/
-	                    X+=rectp2->x;
-	                    Y+=rectp2->y;
-	                    Wid+=rectp2->width;
-	                    Hei+=rectp2->height;
-	                    MergedNum++;
-	                    tmpBlock = current2;
-	                }
-	            }
-				current2 = current2->next;
-				if(tmpBlock!=NULL)
-					muRemoveAddressNode(&Rectangles, tmpBlock);
-			}
-
-			tmpBlock = current1;
-			current1 = current1->next;
-			//save mean of rect to current1 data
-			if(MergedNum > HitNum)
-			{
-				rectp1->x = X/MergedNum;
-				rectp1->y = Y/MergedNum;
-				rectp1->width = Wid/MergedNum;
-				rectp1->height = Hei/MergedNum;
-			}
-			else
-				muRemoveAddressNode(&Rectangles, tmpBlock);
-		}
-	}
-}
-
 /*Tracking Objects' Rectangles*/
 void muTrackRectangles(muSeq_t *Objects, muSeq_t *Trackers)
 {
@@ -343,7 +263,7 @@ void Examinator_Run(muImage_t *src, MuExaminator *Examinator)
 		    muClearSeq(&(Examinator->Detector[i].Objects));
 		    Examinator->Detector[i].Objects=NULL;
 		}
-		Examinator->Detector[i].Objects = muCreateSeq(sizeof(CtRect));
+		Examinator->Detector[i].Objects = muCreateSeq(sizeof(muRect_t));
 
 		//muObjectDetection_Light
 		//muObjectDetection_Light(Examinator->Itlmg, Examinator->ExamData.ScanROI, Examinator->Detector[i].Objects, &(Examinator->Detector[i].Cascade), 1.1, min, max);
