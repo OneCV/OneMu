@@ -217,20 +217,7 @@ muImage_t* muCreateImage( muSize_t size, MU_32S depth, MU_32S channels )
 		return NULL;
 	}
 
-#if (defined(GENERIC) || defined(HISI) || defined(_WINDOWS) || defined(ANDROID))
 	img->imagedata = (MU_8U*)malloc((depth&0x0ff)*channels*size.width*size.height);
-#else
-	if((depth&MU_IMG_HW_ACCE))
-	{
-		//platform_malloc(img, channels);
-		//printf("[%s] phy=%x vir=%x\n",__func__, img->phyaddr, img->imagedata);
-	}
-	else
-	{
-		img->imagedata = (MU_8U*)malloc((depth&0x0ff)*channels*size.width*size.height);
-		img->phyaddr = 0;
-	}
-#endif
 
 	return img;
 }
@@ -247,19 +234,7 @@ muError_t  muReleaseImageHeader( muImage_t** image )
 muError_t  muReleaseImage( muImage_t** image )
 {
 
-#if (defined(GENERIC) || defined(HISI) || defined(_WINDOWS) || defined(ANDROID))
 	free( (*image)->imagedata );
-#else
-	//printf("release image phyaddr = %u\n", (*image)->phyaddr);
-	if((*image)->phyaddr == 0)
-	{
-		free( (*image)->imagedata );
-	}
-	else
-	{
-		//platform_free((*image));
-	}
-#endif
 
 	free( (*image) );
 

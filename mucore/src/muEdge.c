@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------------- /
  *
  * Module: muEdge.c
- * Author: Nobel Hsu, Joe Lin
+ * Author: Joe Lin
  *
  * Description:
  *    Gradients, Edges and Corners
@@ -125,16 +125,6 @@ muError_t muSobel( const muImage_t* src, muImage_t* dst)
 		return MU_ERR_NOT_SUPPORT;
 	}
 
-
-#if defined(HISI3516) || defined(HISI3531)
-	if((src->depth & MU_IMG_HW_ACCE) && (dst->depth & MU_IMG_HW_ACCE))
-	{
-		platformSobel(src, dst);
-		return MU_ERR_SUCCESS;
-	}
-#endif
-
-
 	width = src->width;
 	height = src->height;
 
@@ -235,21 +225,17 @@ muError_t muPrewitt( const muImage_t* src, muImage_t* dst)
 
 
 /*===========================================================================================*/
-/*   muCanny                                                                                */
+/*   muCanny TODO																	         */
 /*                                                                                           */
 /*   DESCRIPTION:                                                                            */
 /*   This routine performs a edge detection by Prewitt operator.                             */
 /*                                                                                           */
-/*   Gx = 1, 1, 1,    Gy = 1, 0, -1,    out = abs(Gx)+abs(Gy)                                */
-/*        0, 0, 0,         1, 0, -1,                                                         */
-/*       -1,-1,-1          1, 0, -1                                                          */   
-/*                                                                                           */
 /*   NOTE                                                                                    */
 /*                                                                                           */
 /*   USAGE                                                                                   */
-/*   muImage_t *src --> input image                                                           */
-/*   muImage_t *dst --> output image                                                          */
-/*   muImage_t *ang --> direction image                                                       */
+/*   muImage_t *src --> input image                                                          */
+/*   muImage_t *dst --> output image                                                         */
+/*   muImage_t *ang --> direction image                                                      */
 /*===========================================================================================*/
 muError_t muCanny( const muImage_t* src, muImage_t* dst, muImage_t *ang)
 {

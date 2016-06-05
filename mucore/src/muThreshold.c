@@ -29,19 +29,14 @@ typedef struct _Otsuparameter{
 		int MeanO;
 }Otsuparameter;
 
-/* Test on hisi3516 400MHZ SOC which cost 0.8s for D1 resolution */
+/* Test on 400MHZ SOC which cost 0.8s for D1 resolution */
 muError_t muOtsuThresholding(const muImage_t * src, muImage_t * dst)
 {
 	int idx = 0, jdx = 0;
-
 	int hidx = 0, widx = 0;
-	
 	float BeVar = 0, TempVar = 0;
-
 	int FixedBeVar = 0, FixedTempVar = 0;
-
 	int Candidateflag = 0;// initially set the threshold = 0; 
-
 	short thidx = 0;
 	float tempdenominator = 0, tempdenominator2 = 0;
 	int outidx = 0, Idxnum = 0;
@@ -295,7 +290,7 @@ muError_t muOtsuThresholding(const muImage_t * src, muImage_t * dst)
 
 
 /*===========================================================================================*/
-/*   muThreshold                                                                            */
+/*   muThreshold                                                                             */
 /*                                                                                           */
 /*   DESCRIPTION:                                                                            */
 /*   This routine performs a thresholding on an input data, and the thresholded pixels are   */
@@ -307,7 +302,7 @@ muError_t muOtsuThresholding(const muImage_t * src, muImage_t * dst)
 /*   This routine would be modified the original data.                                       */
 /*                                                                                           */
 /*   USAGE                                                                                   */
-/*   muImage_t *src --> input image                                                           */
+/*   muImage_t *src --> input image                                                          */
 /*   MU_8U th1 --> threshold1                                                                */
 /*   MU_8U th2 --> threshold2                                                                */
 /*===========================================================================================*/
@@ -329,14 +324,6 @@ muError_t muThresholding(const muImage_t *src, muImage_t *dst,  muDoubleThreshol
 	{
 		return MU_ERR_NOT_SUPPORT;
 	}
-
-#if	defined(HISI3516) || defined(HISI3531)
-	if(src->depth & MU_IMG_HW_ACCE)
-	{
-		platformThresholding(src, dst, th);
-		return MU_ERR_SUCCESS;
-	}
-#endif
 
 	width = src->width;
 	height = src->height;

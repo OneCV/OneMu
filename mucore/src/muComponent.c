@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------------- /
  *
  * Module: muComponent.c
- * Author: Nobel Hsu, Joe Lin
+ * Author: Joe Lin
  * Create date: 02/11/2009
  *
  * Description:
@@ -790,14 +790,6 @@ muError_t muIntegralImage(const muImage_t *src, muImage_t *ii)
 	{
 		return MU_ERR_NOT_SUPPORT;
 	}
-
-#if defined(HISI3516) || defined(HISI3531)
-	if(src->depth & MU_IMG_HW_ACCE)
-	{
-		platformIntegral(src, ii);
-		return MU_ERR_SUCCESS;
-	}
-#endif
 
 	width = ii->width;
 	height = ii->height;

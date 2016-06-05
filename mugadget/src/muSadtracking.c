@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------------- /
  *
  * Module: mu_sadtrcking.c
- * Author: Nobel Hsu, Joe Lin
+ * Author: Joe Lin
  * Create date: 02/25/2010
  *
  * Description:

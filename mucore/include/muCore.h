@@ -65,15 +65,8 @@ MU_API(muError_t) muDownScaleMemcpy420( const muImage_t* src, muImage_t* dst, MU
 #define MU_BORDER_CONSTANT  1 // border is filled with the fixed value, passed as last parameter of the function.
 #define MU_BORDER_REPLICATE 2 // the pixels from the top and bottom rows, the left-most and right-most columns are replicated to fill the border.
 
-/* Convolves the image with the 3*3 kernel and
-   border effect will be handle by specified type (MU_BORDER_*) */
+/* Convolves the image with the 3*3 kernel and */
 MU_API(muError_t) muFilter33( const muImage_t* src, muImage_t* dst, const MU_8S kernel[], const MU_8U norm);
-
-/* Convolves the image with the 5*5 kernel and
-   border effect will be handle by specified type (MU_BORDER_*) */
-MU_API(muError_t) muFilter55( const muImage_t* src, muImage_t* dst, const MU_32S* kernel,
-                              MU_8U bordertype MU_DEFAULT(MU_BORDER_NONE),
-                              muScalar_t value MU_DEFAULT(muScalarAll(0)));
 
 /* 3x3 median filter by bubble sort */
 MU_API(muError_t) muMedian33( const muImage_t *src, muImage_t *dst);
