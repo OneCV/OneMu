@@ -1,7 +1,7 @@
 
-PROJECT(OneMuGADGET)
+PROJECT(OneMuGadget)
 
-SET(OneMuGADGET_SRCS
+SET(OneMuGadget_SRCS
 src/muBackgroundmodeling.c                                              
 src/muCameratampering.c
 src/muPirisanalyze.c
@@ -19,8 +19,8 @@ ADD_DEFINITIONS(-DGENERIC)
 endif (WIN32 OR UNIX)
 
 
-ADD_LIBRARY(OneMuGADGETStatic STATIC  ${OneMuGADGET_SRCS})
-ADD_LIBRARY(OneMuGADGET SHARED ${OneMuGADGET_SRCS})
-set_target_properties(OneMuGADGETStatic PROPERTIES OUTPUT_NAME OneMuGADGET)
-target_link_libraries(OneMuGADGET OneMu)
-add_dependencies(OneMuGADGET OneMu)
+ADD_LIBRARY(OneMuGadgetStatic STATIC  ${OneMuGadget_SRCS})
+ADD_LIBRARY(OneMuGadget SHARED ${OneMuGadget_SRCS})
+set_target_properties(OneMuGadgetStatic PROPERTIES OUTPUT_NAME OneMuGadget)
+target_link_libraries(OneMuGadget OneMu)
+add_dependencies(OneMuGadget OneMu)

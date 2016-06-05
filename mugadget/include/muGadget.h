@@ -91,7 +91,7 @@ typedef struct _muSADApp
 /* ------------------------------------------------------------------------- /
  *
  * Application: SAD-Based object tracking 
- * Author: Nobel Hsu, Joe Lin
+ * Author: Joe Lin
  * Create date: 03/04/2010
  *
  * Description:
@@ -119,7 +119,7 @@ MU_API(muError_t) muSADTracking(muImage_t *src, muImage_t *dst, muSADTrackingPar
 /* ------------------------------------------------------------------------- /
  *
  * Application: SAD-Based tripwire and object counting 
- * Author: Nobel Hsu, Joe Lin
+ * Author: Joe Lin
  * Create date: 03/16/2010
  *
  * Description:
@@ -140,7 +140,7 @@ MU_API(muError_t) muSADTripwireCounting(muSeqBlock_t **first, muSADTripwireCount
 /* ------------------------------------------------------------------------- /
  *
  * Application: SAD-Based tripzone 
- * Author: Nobel Hsu, Joe Lin
+ * Author: Joe Lin
  * Create date: 03/16/2010
  *
  * Description:
@@ -165,7 +165,7 @@ MU_API(MU_VOID) muSADDeleteObject(muSeq_t *);
 /* ------------------------------------------------------------------------- /
  *
  * Application: PTZ Auto-Tracking
- * Author: Nobel Hsu, Joe Lin
+ * Author: Joe Lin
  * Create date: 09/23/2011
  *
  * Description:
@@ -401,7 +401,7 @@ MU_API(MU_32S) muPtzGetTarget(const muImage_t *pre_img, const muImage_t *cur_yuv
 // reset tracking paras to find a new target, would NOT reset user setting
 MU_API(MU_VOID) muPtzTrackingInit(MU_32S width, MU_32S height);
 
-// if no object be detected return 0, else return 1 by Vergil Tien.
+// if no object be detected return 0 else 1
 MU_API(MU_32S) muPtzTrackingTarget(const muImage_t *pYUV422Img, muPtzTrackingParas_t *paras, muPtzTrackingAction_t *action);
 /* End of PTZ Auto-Tracking */
 

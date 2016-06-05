@@ -10,7 +10,6 @@
 #include "muCore.h"
 
 
-
 typedef struct _Link
 {
 	MU_32S data;
@@ -195,6 +194,7 @@ MU_32U* muCreateHistogram()
 	histValue = (MU_32U *)malloc(256*sizeof(MU_32U));
 	return histValue;
 }
+
 muError_t muHistogram( const muImage_t* src, MU_32U *dst)
 {
 	muError_t ret;
@@ -204,18 +204,8 @@ muError_t muHistogram( const muImage_t* src, MU_32U *dst)
 	{
 		return ret;
 	}
-	/*if(src->channels != 1)
-	{
-		return MU_ERR_NOT_SUPPORT;
-	}*/
-/*
-	if(src->depth & MU_IMG_HW_ACCE)
-	{
-			platform_histogram(src, dst);
-			return MU_ERR_SUCCESS;
-	}
-*/  
-    for( i=0;i<256;i++)
+    
+	for( i=0;i<256;i++)
     {
         dst[i]=0;
     }
@@ -273,11 +263,6 @@ muError_t muHistogramBlk(muImage_t* src, MU_16U* hist_blk_result, MU_8U win_h_s,
 	{
 		return ret;
 	}
-	/*if(src->channels != 1)
-	{
-		printf("src->channels != 1\n");
-		return MU_ERR_NOT_SUPPORT;
-	}*/
 
 	if( src==NULL )
 	{

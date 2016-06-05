@@ -482,42 +482,6 @@ typedef struct _muBox2D
                              and the first side (i.e. length) in degrees */
 }muBox2D_t;
 
-/************************************* muScalar *****************************************/
-
-typedef struct _muScalar
-{
-    MU_64F val[4];
-
-}muScalar_t;
-
-MU_INLINE muScalar_t muScalar( MU_64F val0, MU_64F val1 MU_DEFAULT(0),
-                               MU_64F val2 MU_DEFAULT(0), MU_64F val3 MU_DEFAULT(0))
-{
-    muScalar_t scalar;
-    scalar.val[0] = val0; scalar.val[1] = val1;
-    scalar.val[2] = val2; scalar.val[3] = val3;
-    return scalar;
-}
-
-
-MU_INLINE muScalar_t muRealScalar( MU_64F val0 )
-{
-    muScalar_t scalar;
-    scalar.val[0] = val0;
-    scalar.val[1] = scalar.val[2] = scalar.val[3] = 0;
-    return scalar;
-}
-
-MU_INLINE muScalar_t muScalarAll( MU_64F val0123 )
-{
-    muScalar_t scalar;
-    scalar.val[0] = val0123;
-    scalar.val[1] = val0123;
-    scalar.val[2] = val0123;
-    scalar.val[3] = val0123;
-    return scalar;
-}
-
 /****mu integral image****/ //chaotien 2015/2/8
 typedef struct _muIntegralImg
 {

@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------------- /
  *
  * Module: mu_sadtripzone.c
- * Author: Nobel Hsu, Joe Lin
+ * Author: Joe Lin
  * Create date: 03/16/2010
  *
  * Description:

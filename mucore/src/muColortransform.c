@@ -194,19 +194,6 @@ muError_t muYUV422toRGB(const muImage_t *src, muImage_t *dst)
 		return MU_ERR_NOT_SUPPORT;
 	}
 
-#if defined(HISI3516) || defined(HISI3531)
-	if((src->depth & MU_IMG_HW_ACCE) && (dst->depth & MU_IMG_HW_ACCE))
-	{
-		printf("plateform yuv422 to rgb\n");
-
-		//yuv422p->yuv422sp
-		//muYUV422p2sp(src);
-
-		//platform_yuv422torgb(src, dst);
-		return MU_ERR_SUCCESS;
-	}
-#endif
-
 	channels = dst->channels;
 
 	ssrc.width = src->width;
@@ -458,7 +445,6 @@ muError_t muGraytoRGBA(const muImage_t *src, muImage_t *dst)
 	{
 		tempData = inData[i];
 		outTempData = (0xFF000000 | (tempData<<16) | (tempData<<8) | tempData);
-		//printf("indata = %f  outData = %f\n", tempData, outTempData);
 		outData[i] = outTempData;	
 	}
 

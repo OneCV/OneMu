@@ -13,7 +13,6 @@
 #include "muCore.h"
 
 
-
 /*===========================================================================================*/
 /*   muAnd                                                                                  */
 /*                                                                                           */
@@ -44,15 +43,6 @@ muError_t muAnd(const muImage_t *src1, muImage_t *src2, muImage_t *dst)
 	{
 		return MU_ERR_NOT_SUPPORT;
 	}
-
-
-#if defined(HISI3516) || defined(HISI3531)
-	if((src1->depth & MU_IMG_HW_ACCE) && (src2->depth & MU_IMG_HW_ACCE) && (dst->depth & MU_IMG_HW_ACCE))
-	{
-		platformAnd(src1, src2, dst);
-		return MU_ERR_SUCCESS;
-	}
-#endif 
 
 	in1 = src1->imagedata;
 	in2 = src2->imagedata;
@@ -110,14 +100,6 @@ muError_t muSub(const muImage_t *src1, muImage_t *src2, muImage_t *dst)
 		return MU_ERR_NOT_SUPPORT;
 	}
 
-#if defined(HISI3516) || defined(HISI3531)
-	if((src1->depth & MU_IMG_HW_ACCE) && (src2->depth & MU_IMG_HW_ACCE) && (dst->depth & MU_IMG_HW_ACCE))
-	{
-		platformSub(src1, src2, dst);
-		return MU_ERR_SUCCESS;
-	}
-#endif 
-
 	in1 = src1->imagedata;
 	in2 = src2->imagedata;
 
@@ -172,14 +154,6 @@ muError_t muOr(const muImage_t *src1, muImage_t *src2, muImage_t *dst)
 	{
 		return MU_ERR_NOT_SUPPORT;
 	}
-
-#if defined(HISI3516) || defined(HISI3531)
-	if((src1->depth & MU_IMG_HW_ACCE) && (src2->depth & MU_IMG_HW_ACCE) && (dst->depth & MU_IMG_HW_ACCE))
-	{
-		platformOr(src1, src2, dst);
-		return MU_ERR_SUCCESS;
-	}
-#endif 
 
 	in1 = src1->imagedata;
 	in2 = src2->imagedata;

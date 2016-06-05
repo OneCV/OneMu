@@ -28,13 +28,6 @@ muError_t muFilter33( const muImage_t* src, muImage_t* dst, const MU_8S kernel[]
 		return MU_ERR_NOT_SUPPORT;
 	}
 
-#if defined(HISI3516) || defined(HISI3531)
-	if((src->depth & MU_IMG_HW_ACCE) && (dst->depth & MU_IMG_HW_ACCE))
-	{
-		platform_filter33(src, dst, kernel, norm);
-		return MU_ERR_SUCCESS;
-	}
-#endif
 	
 	for( i=1; i<(src->height-1); i++ )
 	{
@@ -57,16 +50,6 @@ muError_t muFilter33( const muImage_t* src, muImage_t* dst, const MU_8S kernel[]
 
 	return MU_ERR_SUCCESS;
 }
-
-/* Convolves the image with the 5*5 kernel and
-   border effect will be handle by specified type (MU_BORDER_*) */
-muError_t muFilter55( const muImage_t* src, muImage_t* dst, const MU_32S* kernel,
-		MU_8U bordertype MU_DEFAULT(MU_BORDER_NONE), 
-		muScalar_t value MU_DEFAULT(muScalarAll(0)))
-{
-	return MU_ERR_NOT_SUPPORT;
-}
-
 
 
 muError_t muMedian33(const muImage_t *src, muImage_t *dst)
@@ -139,18 +122,18 @@ static MU_8U search_median_value(MU_8U Numarry[])
 {
 	// bitonic sorting.	
 	MU_8U med; 
-	MU_32S i = 0, temp;
-	MU_32S j = 0;
-	MU_32S k = 0, l = 0; 
-	MU_32S m = 0;
+	MU_32S i=0, temp;
+	MU_32S j=0;
+	MU_32S k=0, l=0; 
+	MU_32S m=0;
 
-	while(i < 4)
+	while(i<4)
 	{
-		if( i % 2 == 0)
+		if(i%2==0)
 		{
-			if( Numarry[i * 2] > Numarry[i * 2 + 1])
+			if( Numarry[i*2] > Numarry[i*2+1])
 			{
-				temp = Numarry[ i * 2];
+				temp = Numarry[i*2];
 				Numarry[i * 2] = Numarry[i * 2 +1];
 				Numarry[i * 2 +1] = temp;
 			}

@@ -46,14 +46,6 @@ muError_t muDilate33(const muImage_t *src, muImage_t *dst)
 		return MU_ERR_NOT_SUPPORT;
 	}
 
-#if defined(HISI3516) || defined(HISI3531)
-	if((src->depth & MU_IMG_HW_ACCE) && (dst->depth & MU_IMG_HW_ACCE))
-	{
-		platformDilate33(src, dst);
-		return MU_ERR_SUCCESS;
-	}
-#endif
-
 	in = src->imagedata;
 	out = dst->imagedata;
 
@@ -124,15 +116,6 @@ muError_t muErode33(const muImage_t *src, muImage_t *dst)
 	{
 		return MU_ERR_NOT_SUPPORT;
 	}
-
-#if defined(HISI3516) || defined(HISI3531)
-	if((src->depth & MU_IMG_HW_ACCE) && (dst->depth & MU_IMG_HW_ACCE))
-	{
-		platformErode33(src, dst);
-		return MU_ERR_SUCCESS;
-	}
-#endif
-
 
 	in = src->imagedata;
 	out = dst->imagedata;
@@ -343,13 +326,6 @@ muError_t muDilateCross33(const muImage_t *src, muImage_t *dst)
 	if(src->depth != MU_IMG_DEPTH_8U &&
 			dst->depth != MU_IMG_DEPTH_8U) 
 	{
-#if defined(HISI3516) || defined(HISI3531)
-		if(src->depth == MU_IMG_HW_ACCE)
-		{
-			platformDilate33(src, dst);
-			return MU_ERR_SUCCESS;
-		}
-#endif
 		return MU_ERR_NOT_SUPPORT; 
 	}
 
@@ -411,13 +387,6 @@ muError_t muErodeCross33(const muImage_t *src, muImage_t *dst)
 	if(src->depth != MU_IMG_DEPTH_8U &&
 			dst->depth != MU_IMG_DEPTH_8U) 
 	{
-#if defined(HISI3516) || defined(HISI3531)
-		if(src->depth == MU_IMG_HW_ACCE)
-		{
-			platformErode33(src, dst);
-			return MU_ERR_SUCCESS;
-		}
-#endif
 		return MU_ERR_NOT_SUPPORT; 
 	}
 
