@@ -9,193 +9,232 @@
  *  
  -------------------------------------------------------------------------- */
 #include "muGadget.h"
+#define MU_ADJUST_WEIGHTS 0
 
-/** Inline Functions */
-__inline int ctRound(double dInput)
+void muCalcIntegralImage( const unsigned char* src, int* sum, double* sqsum, muSize_t size)
 {
-    if(dInput >= 0.0f)
-    {
-        return ((int)(dInput + 0.5f));
-    }
-    return ((int)(dInput - 0.5f));
-}
-
-typedef struct CtScaledRectPt
-{
-    int *p0, *p1, *p2, *p3;
-} CtScaledRectPt;
-
-static CtScaledRectPt EdgeP;
-static int EdgeTH = 100;
-static int EdgeRectTH;
-
-void ctIntegral( const unsigned char* src, int* sum, double* sqsum, int* tilted, muSize_t size, int cn)
-{
-	int x, y, k;
+	int x, y;
 
     int srcstep = size.width;
     int sumstep = size.width+1;
-    int tiltedstep = size.width+1;
     int sqsumstep = size.width+1;
 	int t;
 	double tq;
 	int s;
     double sq;
-	int* buf = NULL;
 
-	cn = 1;
-    size.width *= cn;
-
-    memset( sum, 0, (size.width+cn)*sizeof(sum[0]));
-    sum += sumstep + cn;
+    memset( sum, 0, (size.width+1)*sizeof(sum[0]));
+    sum+=sumstep + 1;
 
     if( sqsum )
     {
-        memset( sqsum, 0, (size.width+cn)*sizeof(sqsum[0]));
-        sqsum += sqsumstep + cn;
+        memset( sqsum, 0, (size.width+1)*sizeof(sqsum[0]));
+        sqsum+=sqsumstep+1;
     }
 
-    if( tilted )
+    if( sqsum==0 )
     {
-        memset( tilted, 0, (size.width+cn)*sizeof(tilted[0]));
-        tilted += tiltedstep + cn;
-    }
-
-    if( sqsum == 0 && tilted == 0 )
-    {
-        for( y = 0; y < size.height; y++, src += srcstep - cn, sum += sumstep - cn )
+        for( y=0; y<size.height; y++, src+=srcstep, sum+=sumstep )
         {
-            for( k = 0; k < cn; k++, src++, sum++ )
+            int s = sum[-1] = 0;
+            for( x=0; x<size.width; x++ )
             {
-                int s = sum[-cn] = 0;
-                for( x = 0; x < size.width; x += cn )
-                {
-                    s += src[x];
-                    sum[x] = sum[x - sumstep] + s;
-                }
-            }
-        }
-    }
-    else if( tilted == 0 )
-    {
-		for( y = 0; y < size.height; y++, src += srcstep - cn,
-                        sum += sumstep - cn, sqsum += sqsumstep - cn )
-        {
-            for( k = 0; k < cn; k++, src++, sum++, sqsum++ )
-            {
-                int s = sum[-cn] = 0;
-                double sq = sqsum[-cn] = 0;
-                for( x = 0; x < size.width; x += cn )
-                {
-                    int it = src[x];
-                    s += it;
-                    sq += (double)it*it;
-                    t = sum[x - sumstep] + s;
-                    tq = sqsum[x - sqsumstep] + sq;
-                    sum[x] = t;
-                    sqsum[x] = tq;
-                }
+                s+=src[x];
+                sum[x]=sum[x-sumstep]+s;
             }
         }
     }
     else
     {
-		//AutoBuffer<int> _buf(size.width+cn);
-
-		buf = (int *)calloc(size.width+cn, sizeof(int));
-
-        for( k = 0; k < cn; k++, src++, sum++, tilted++, buf++ )
+		for( y=0; y<size.height; y++, src += srcstep, sum += sumstep, sqsum += sqsumstep)
         {
-            sum[-cn] = tilted[-cn] = 0;
-
-            for( x = 0, s = 0, sq = 0; x < size.width; x += cn )
+            int s = sum[-1] = 0;
+            double sq = sqsum[-1] = 0;
+            for( x = 0; x < size.width; x++ )
             {
                 int it = src[x];
-                buf[x] = tilted[x] = it;
                 s += it;
                 sq += (double)it*it;
-                sum[x] = s;
-                if( sqsum )
-                    sqsum[x] = sq;
-            }
-
-            if( size.width == cn )
-                buf[cn] = 0;
-
-            if( sqsum )
-            {
-                sqsum[-cn] = 0;
-                sqsum++;
+                t = sum[x - sumstep] + s;
+                tq = sqsum[x - sqsumstep] + sq;
+                sum[x] = t;
+                sqsum[x] = tq;
             }
         }
-
-        for( y = 1; y < size.height; y++ )
-        {
-            src += srcstep - cn;
-            sum += sumstep - cn;
-            tilted += tiltedstep - cn;
-            buf += -cn;
-
-            if( sqsum )
-                sqsum += sqsumstep - cn;
-
-            for( k = 0; k < cn; k++, src++, sum++, tilted++, buf++ )
-            {
-                int it = src[0];
-                int t0 = s = it;
-                double tq0 = sq = (double)it*it;
-
-                sum[-cn] = 0;
-                if( sqsum )
-                    sqsum[-cn] = 0;
-                tilted[-cn] = tilted[-tiltedstep];
-
-                sum[0] = sum[-sumstep] + t0;
-                if( sqsum )
-                    sqsum[0] = sqsum[-sqsumstep] + tq0;
-                tilted[0] = tilted[-tiltedstep] + t0 + buf[cn];
-
-                for( x = cn; x < size.width - cn; x += cn )
-                {
-                    int t1 = buf[x];
-                    buf[x - cn] = t1 + t0;
-                    t0 = it = src[x];
-                    tq0 = (double)it*it;
-                    s += t0;
-                    sq += tq0;
-                    sum[x] = sum[x - sumstep] + s;
-                    if( sqsum )
-                        sqsum[x] = sqsum[x - sqsumstep] + sq;
-                    t1 += buf[x + cn] + t0 + tilted[x - tiltedstep - cn];
-                    tilted[x] = t1;
-                }
-
-                if( size.width > cn )
-                {
-                    int t1 = buf[x];
-                    buf[x - cn] = t1 + t0;
-                    t0 = it = src[x];
-                    tq0 = (double)it*it;
-                    s += t0;
-                    sq += tq0;
-                    sum[x] = sum[x - sumstep] + s;
-                    if( sqsum )
-                        sqsum[x] = sqsum[x - sqsumstep] + sq;
-                    tilted[x] = t0 + t1 + tilted[x - tiltedstep - cn];
-                    buf[x] = t0;
-                }
-
-                if( sqsum )
-                    sqsum++;
-            }
-        }
-		
-		if(buf != NULL)
-			free(buf);
     }
 }
 
-void muObjectDetectionInit( CtHaarClassifierCascade* cascade, CtHaarStageClassifier *cascade_stages, CtHaarClassifier *cascade_classifiers, double *CascadeParaTable)
+
+ MuSimpleDetector* muLoadSimpleDetector( const char* filename)
+ {
+     MuSimpleDetector *cascade = (MuSimpleDetector *)calloc(1, sizeof(MuSimpleDetector));
+
+     FILE *cFileP = NULL;
+     int i, j, k, l, rn;
+     char chartemp[20];
+     int Inttemp;
+     double Flotemp;
+     int has_tilted_features = 0;
+
+     printf("\nRead Cascacade File\n");
+     cFileP = fopen(filename, "r");
+     if(cFileP == NULL)
+     {
+         printf("Open file error XDrz\n");
+         return 0;
+     }
+     
+     //Original window size
+     fscanf(cFileP, "%d", &Inttemp);
+     cascade->orig_window_size.width = Inttemp;
+     fscanf(cFileP, "%d", &Inttemp);
+     cascade->orig_window_size.height = Inttemp;
+     printf("Original window size: %d, %d\n",cascade->orig_window_size.width, cascade->orig_window_size.height);
+
+     //Initial Stump and tree flag
+     cascade->isStumpBased = 1;
+     cascade->is_tree = 0;
+
+     //Number of stages
+     fscanf(cFileP, "%d", &Inttemp);
+     cascade->count = Inttemp;
+     printf("Number of stages: %d\n",cascade->count);
+     cascade->stage_classifier = (MuHaarStageClassifier *)calloc(cascade->count, sizeof(MuHaarStageClassifier));
+
+     //Allocate mem for haar structures and read cascade parameter into haar structures
+     for( i = 0; i < cascade->count; ++i ) //Read Stages
+     {
+         MuHaarStageClassifier *stage_classifier = (cascade->stage_classifier+i);        
+         
+         stage_classifier->two_rects = 1;
+
+         //Read number of trees in the i stage
+         fscanf(cFileP, "%d", &Inttemp);  
+         stage_classifier->count = Inttemp;
+         printf("Number of classifiers in stage %d: %d\n", i, cascade->stage_classifier[i].count);
+         
+         //--Allocate mem for classifiers
+         stage_classifier->classifier = (MuHaarClassifier *)calloc(stage_classifier->count, sizeof(MuHaarClassifier));
+         for(j=0;j<stage_classifier->count;j++) //Read classifiers (weak)
+         {
+             MuHaarClassifier *classifier = stage_classifier->classifier+j;
+
+             //--Read number of nodes in the j classifier
+             fscanf(cFileP, "%d", &Inttemp);
+             classifier->count = Inttemp;
+             
+             #ifdef debug_load
+             printf("Number of nodes in classifier %d: %d\n", j, cascade->stage_classifier[i].classifier[j].count);
+             #endif
+
+             cascade->isStumpBased &= classifier->count == 1;
+
+             for(k=0;k<classifier->count;k++)
+             {
+                MuHaarTreeNode *node = &classifier->node;
+                //--Read number of rects in the k node
+                fscanf(cFileP, "%d", &Inttemp);
+                if(Inttemp==2) node->two_rects = 1;
+                else if(Inttemp==3) node->two_rects = 0;
+                else {printf("哇阿~~"); return 0;}
+                #ifdef debug_load
+                printf("If2Rect flag in node %d: %d\n", k, cascade->stage_classifier[i].classifier[j].node[k].two_rects);
+                #endif
+                if(node->two_rects)
+                    rn = 2;
+                else
+                {
+                    rn = 3;
+                    stage_classifier->two_rects = 0;
+                    memset( &(node->feature.rect[2]), 0, sizeof(node->feature.rect[2]) );
+                }
+
+                for(l=0;l<rn;l++)
+                {
+                    fscanf(cFileP, "%d", &Inttemp);
+                    node->feature.rect[l].r.x = Inttemp;
+                    #ifdef debug_load
+                    printf("x in rect %d: %d\n", l, cascade->stage_classifier[i].classifier[j].node[k].feature.rect[l].r.x);
+                    #endif
+
+                    fscanf(cFileP, "%d", &Inttemp);
+                    node->feature.rect[l].r.y = Inttemp;
+                    #ifdef debug_load
+                    printf("y in rect %d: %d\n", l, cascade->stage_classifier[i].classifier[j].node[k].feature.rect[l].r.y);
+                    #endif
+                         
+                    fscanf(cFileP, "%d", &Inttemp);
+                    node->feature.rect[l].r.width = Inttemp;
+                    #ifdef debug_load
+                    printf("width in rect %d: %d\n", l, cascade->stage_classifier[i].classifier[j].node[k].feature.rect[l].r.width);
+                    #endif
+
+                    fscanf(cFileP, "%d", &Inttemp);
+                    node->feature.rect[l].r.height = Inttemp;
+                    #ifdef debug_load
+                    printf("height in rect %d: %d\n", l, cascade->stage_classifier[i].classifier[j].node[k].feature.rect[l].r.height);
+                    #endif
+
+                    fscanf(cFileP, "%lf", &Flotemp);
+                    node->feature.rect[l].ori_weight = Flotemp;
+                    #ifdef debug_load
+                    printf("weight in rect %d: %f\n", l, cascade->stage_classifier[i].classifier[j].node[k].feature.rect[l].weight);
+                    #endif
+                }
+                     
+                fscanf(cFileP, "%d", &Inttemp);
+                node->feature.tilted=Inttemp;
+                #ifdef debug_load
+                printf("tilted flag in node %d: %d\n", k, cascade->stage_classifier[i].classifier[j].node[k].feature.tilted);
+                #endif
+                has_tilted_features |= node->feature.tilted != 0;
+
+                fscanf(cFileP, "%lf", &Flotemp);
+                node->threshold = Flotemp;
+                #ifdef debug_load
+                printf("threshold in node %d: %f\n", k, cascade->stage_classifier[i].classifier[j].node[k].threshold);
+                #endif
+                fscanf(cFileP, "%lf", &Flotemp);
+                node->left = Flotemp;
+                #ifdef debug_load
+                printf("left value in node %d: %f\n", k, cascade->stage_classifier[i].classifier[j].node[k].left);
+                #endif
+                fscanf(cFileP, "%lf", &Flotemp);
+                node->right = Flotemp;
+                #ifdef debug_load
+                printf("right value in node %d: %f\n", k, cascade->stage_classifier[i].classifier[j].node[k].right);
+                #endif
+
+                //ignore tilted feature
+                if(node->feature.tilted!=0){
+                    node->left = 0;
+                    node->right = 0;
+                }
+             } //end for k node
+         }//end for j classifier
+
+         fscanf(cFileP, "%lf", &Flotemp);
+         stage_classifier->threshold = Flotemp;
+         printf("threshold in stage %d: %f\n", i, cascade->stage_classifier[i].threshold);
+
+         fscanf(cFileP, "%d", &Inttemp);
+         stage_classifier->parent = (Inttemp == -1) ? NULL : cascade->stage_classifier + Inttemp;
+
+         fscanf(cFileP, "%d", &Inttemp);
+         stage_classifier->next = (Inttemp == -1) ? NULL : cascade->stage_classifier + Inttemp;
+         stage_classifier->child = (Inttemp == -1) ? NULL : cascade->stage_classifier + i;
+         cascade->is_tree |= stage_classifier->next != NULL;
+     }
+
+     cascade->has_tilted_features = has_tilted_features;
+     
+     printf("has tilted: %d, IsStump: %d, Istree: %d\n", cascade->has_tilted_features, cascade->isStumpBased, cascade->is_tree);
+
+     fclose(cFileP);
+     return cascade;
+ }
+
+void muObjectDetectionInit( MuSimpleDetector* cascade, MuHaarStageClassifier *cascade_stages, MuHaarClassifier *cascade_classifiers, double *CascadeParaTable)
 {
     int i, j, k, l, rn;
     char chartemp[20];
@@ -220,12 +259,11 @@ void muObjectDetectionInit( CtHaarClassifierCascade* cascade, CtHaarStageClassif
     index++;
     printf("Number of stages: %d\n",cascade->count);
     cascade->stage_classifier = cascade_stages; //mem asign
-    //cascade->stage_classifier = new CtHaarStageClassifier[cascade->count];
     
     //Allocate mem for haar structures and read cascade parameter into haar structures
     for( i = 0; i < cascade->count; ++i ) //Read Stages
     {
-        CtHaarStageClassifier *stage_classifier = (cascade->stage_classifier+i);
+        MuHaarStageClassifier *stage_classifier = (cascade->stage_classifier+i);
         stage_classifier->two_rects = 1;
         
         //Read number of trees in the i stage
@@ -234,13 +272,12 @@ void muObjectDetectionInit( CtHaarClassifierCascade* cascade, CtHaarStageClassif
         printf("Number of classifiers in stage %d: %d\n", i, cascade->stage_classifier[i].count);
 	
         //--Allocate mem for classifiers
-        //stage_classifier->classifier = new CtHaarClassifier[stage_classifier->count]; 
         stage_classifier->classifier = cascade_classifiers;
         cascade_classifiers = cascade_classifiers + stage_classifier->count;
         
         for(j=0;j<stage_classifier->count;j++) //Read classifiers (weak)
         {
-            CtHaarClassifier *classifier = stage_classifier->classifier+j;
+            MuHaarClassifier *classifier = stage_classifier->classifier+j;
             
             //--Read number of nodes in the j classifier
             classifier->count = CascadeParaTable[index];
@@ -253,7 +290,7 @@ void muObjectDetectionInit( CtHaarClassifierCascade* cascade, CtHaarStageClassif
             
             for(k=0;k<classifier->count;k++)
             {
-            CtHaarTreeNode *node = &classifier->node;
+            MuHaarTreeNode *node = &classifier->node;
             //--Read number of rects in the k node
             Inttemp = CascadeParaTable[index];
             index++;
@@ -351,7 +388,22 @@ void muObjectDetectionInit( CtHaarClassifierCascade* cascade, CtHaarStageClassif
     printf("has tilted: %d, IsStump: %d, Istree: %d\n", cascade->has_tilted_features, cascade->isStumpBased, cascade->is_tree);
 }
 
-int ctRunHaarClassifierCascade_SuperLight( CtHaarClassifierCascade *cascade, muSize_t sumSize, int x, int y)
+void muReleaseSimpleDetector( MuSimpleDetector* cascade )
+{
+    int i, j;
+
+    //Delete mem for cascade structures
+    for( i = 0; i < cascade->count; ++i ) //Read Stages
+    {
+        MuHaarStageClassifier *stage_classifier = (cascade->stage_classifier+i);
+        free(stage_classifier->classifier);
+    }
+
+    free(cascade->stage_classifier);
+    free(cascade);
+}
+
+int ctRunHaarClassifierCascade_SuperLight( MuSimpleDetector *cascade, muSize_t sumSize, int x, int y)
 {
     int p_offset, pq_offset;
     int i, j;
@@ -382,8 +434,8 @@ int ctRunHaarClassifierCascade_SuperLight( CtHaarClassifierCascade *cascade, muS
         {
             for( j = 0; j < cascade->stage_classifier[i].count; j++ )
             {
-                CtHaarClassifier* classifier = cascade->stage_classifier[i].classifier + j;
-                CtHaarTreeNode *node = &classifier->node; //Only one node~
+                MuHaarClassifier* classifier = cascade->stage_classifier[i].classifier + j;
+                MuHaarTreeNode *node = &classifier->node; //Only one node~
                 double t = node[0].threshold*variance_norm_factor;
                 double sum1 = calc_sum(node[0].feature.rect[0],p_offset) * node[0].feature.rect[0].weight;
                 sum1 += calc_sum(node[0].feature.rect[1],p_offset) * node[0].feature.rect[1].weight;
@@ -395,8 +447,8 @@ int ctRunHaarClassifierCascade_SuperLight( CtHaarClassifierCascade *cascade, muS
             
             for( j = 0; j < cascade->stage_classifier[i].count; j++ )
             {
-                CtHaarClassifier* classifier = cascade->stage_classifier[i].classifier + j;
-                CtHaarTreeNode* node = &classifier->node;
+                MuHaarClassifier* classifier = cascade->stage_classifier[i].classifier + j;
+                MuHaarTreeNode* node = &classifier->node;
                 double t = node[0].threshold*variance_norm_factor;
                 double sum1 = calc_sum(node[0].feature.rect[0],p_offset) * node[0].feature.rect[0].weight;
                 sum1 += calc_sum(node[0].feature.rect[1],p_offset) * node[0].feature.rect[1].weight;
@@ -418,7 +470,7 @@ int ctRunHaarClassifierCascade_SuperLight( CtHaarClassifierCascade *cascade, muS
 }
 
 
-int ctRunHaarClassifierCascade( CtHaarClassifierCascade *cascade, muSize_t sumSize, int x, int y, int start_stage )
+int ctRunHaarClassifierCascade( MuSimpleDetector *cascade, muSize_t sumSize, int x, int y, int std_th )
 {
 	int p_offset, pq_offset;
     int i, j;
@@ -431,8 +483,7 @@ int ctRunHaarClassifierCascade( CtHaarClassifierCascade *cascade, muSize_t sumSi
         return -1;
 
 	pq_offset = p_offset = y * (sumSize.width) + x; //offset of sum
-    //pq_offset = y * (sumSize.width) + x; //offset of sqsum
-    mean = calc_sum(*cascade,p_offset)*cascade->inv_window_area; //
+    mean = calc_sum(*cascade,p_offset)*cascade->inv_window_area;
 	
 	variance_norm_factor = cascade->pq0[pq_offset] - cascade->pq1[pq_offset] -
                            cascade->pq2[pq_offset] + cascade->pq3[pq_offset];
@@ -442,7 +493,10 @@ int ctRunHaarClassifierCascade( CtHaarClassifierCascade *cascade, muSize_t sumSi
     else
         variance_norm_factor = 1.;
 
-	for( i = start_stage; i < cascade->count; i++ )
+    if(variance_norm_factor < std_th)
+        return 0;
+
+	for( i = 0; i < cascade->count; i++ )
     {
         stage_sum = 0.0;
 		
@@ -450,8 +504,8 @@ int ctRunHaarClassifierCascade( CtHaarClassifierCascade *cascade, muSize_t sumSi
         {
             for( j = 0; j < cascade->stage_classifier[i].count; j++ )
             {
-                CtHaarClassifier* classifier = cascade->stage_classifier[i].classifier + j;
-                CtHaarTreeNode *node = &classifier->node; //Only one node~
+                MuHaarClassifier* classifier = cascade->stage_classifier[i].classifier + j;
+                MuHaarTreeNode *node = &classifier->node; //Only one node~
                 double t = node[0].threshold*variance_norm_factor;
                 double sum1 = calc_sum(node[0].feature.rect[0],p_offset) * node[0].feature.rect[0].weight;
                 sum1 += calc_sum(node[0].feature.rect[1],p_offset) * node[0].feature.rect[1].weight;
@@ -460,11 +514,10 @@ int ctRunHaarClassifierCascade( CtHaarClassifierCascade *cascade, muSize_t sumSi
         }
         else
         {
-            
 			for( j = 0; j < cascade->stage_classifier[i].count; j++ )
             {
-                CtHaarClassifier* classifier = cascade->stage_classifier[i].classifier + j;
-                CtHaarTreeNode* node = &classifier->node;
+                MuHaarClassifier* classifier = cascade->stage_classifier[i].classifier + j;
+                MuHaarTreeNode* node = &classifier->node;
                 double t = node[0].threshold*variance_norm_factor;
                 double sum1 = calc_sum(node[0].feature.rect[0],p_offset) * node[0].feature.rect[0].weight;
                 sum1 += calc_sum(node[0].feature.rect[1],p_offset) * node[0].feature.rect[1].weight;
@@ -486,36 +539,26 @@ int ctRunHaarClassifierCascade( CtHaarClassifierCascade *cascade, muSize_t sumSi
 }
 
 
-void ctSetImagesForHaarClassifierCascade( CtHaarClassifierCascade *cascade, muSize_t sumSize, int *sum, double *sqsum, int *tilted, int *EdgeSum, double scale )
+void muSetImagesForHaarClassifierCascade( MuSimpleDetector *cascade, muSize_t sumSize, int *sum, double *sqsum, double scale )
 {
-	int i, index;
-	int j, k, l;
+	int i, j, k, l;
 	double weight_scale, win_area;
-	CtRect equRect;
+	muRect_t equRect;
 
-	if( cascade->has_tilted_features )
-	{
-		//cascade->tilted = *tilted;
-	}
-	//cascade->sum = *sum;
-    //cascade->sqsum = *sqsum; //可能用不到
-	
 	cascade->scale = scale;
-    cascade->real_window_size.width = ctRound( cascade->orig_window_size.width * scale );
-    cascade->real_window_size.height = ctRound( cascade->orig_window_size.height * scale );
+    cascade->real_window_size.width = muRound( cascade->orig_window_size.width * scale );
+    cascade->real_window_size.height = muRound( cascade->orig_window_size.height * scale );
 
-	//設定計算std的範圍:比real window (scane window)內縮round(scale) pixels
-	equRect.x = equRect.y = ctRound(scale);
-    equRect.width = ctRound((cascade->orig_window_size.width-2)*scale);
-    equRect.height = ctRound((cascade->orig_window_size.height-2)*scale);
+	//Set rectangle area for weight scaling and std calculation
+	equRect.x = equRect.y = muRound(scale);
+    equRect.width = muRound((cascade->orig_window_size.width-2)*scale);
+    equRect.height = muRound((cascade->orig_window_size.height-2)*scale);
     win_area = (equRect.width*equRect.height);
     weight_scale = 1./(win_area);
     cascade->inv_window_area = weight_scale;
-	//printf("scale %lf, equRect.x %d\n", scale, equRect.x);
 
-	//設定計算std範圍的四點指到integral image上的指標 -> 考慮從sum實際有值的點(1,1)開始設定
+	//Set pointers for std calculation
 	cascade->p0 = sum + sumSize.width*equRect.y + equRect.x;
-	//cascade->p0 = sum + sumSize.width*1;
     cascade->p1 = sum + sumSize.width*equRect.y + equRect.x + equRect.width;
     cascade->p2 = sum + sumSize.width*(equRect.y + equRect.height) + equRect.x;
     cascade->p3 = sum + sumSize.width*(equRect.y + equRect.height) + equRect.x + equRect.width;
@@ -525,25 +568,15 @@ void ctSetImagesForHaarClassifierCascade( CtHaarClassifierCascade *cascade, muSi
     cascade->pq2 = sqsum + sumSize.width*(equRect.y + equRect.height) + equRect.x;
     cascade->pq3 = sqsum + sumSize.width*(equRect.y + equRect.height) + equRect.x + equRect.width;
 
-    if(EdgeSum!=0)
-    {
-        EdgeRectTH = EdgeTH*win_area;
-        EdgeP.p0 = EdgeSum + equRect.y*sumSize.width + equRect.x;
-        EdgeP.p1 = EdgeSum + equRect.y*sumSize.width + equRect.x + equRect.width;
-        EdgeP.p2 = EdgeSum + (equRect.y + equRect.height)*sumSize.width + equRect.x;
-        EdgeP.p3 = EdgeSum + (equRect.y + equRect.height)*sumSize.width + equRect.x + equRect.width;
-    }
-
 	for( i = 0; i < cascade->count; i++ )
     {
         for( j = 0; j < cascade->stage_classifier[i].count; j++ )
         {
             for( l = 0; l < cascade->stage_classifier[i].classifier[j].count; l++ )
             {
-				CtHaarFeature* feature =
-                    &cascade->stage_classifier[i].classifier[j].node.feature;
+				MuHaarFeature* feature = &cascade->stage_classifier[i].classifier[j].node.feature;
 				double sum0 = 0, area0 = 0;
-				CtRect r[3];
+				muRect_t r[3];
 
 				int base_w = -1, base_h = -1;
                 int new_base_w = 0, new_base_h = 0;
@@ -553,15 +586,15 @@ void ctSetImagesForHaarClassifierCascade( CtHaarClassifierCascade *cascade, muSi
                 int nr;
 				
 				/* align blocks */
-                for( k = 0; k < CT_HAAR_FEATURE_MAX; k++ )
+                for( k = 0; k < MU_HAAR_FEATURE_MAX; k++ )
                 {
 					if( cascade->stage_classifier[i].classifier[j].node.two_rects && k==2)
                         break;
-                    r[k] = feature->rect[k].r; //feature's r to r, 原始座標及長寬
-                    base_w = (int)CT_IMIN( (unsigned)base_w, (unsigned)(r[k].width-1) );
-                    base_w = (int)CT_IMIN( (unsigned)base_w, (unsigned)(r[k].x - r[0].x-1) );
-                    base_h = (int)CT_IMIN( (unsigned)base_h, (unsigned)(r[k].height-1) );
-                    base_h = (int)CT_IMIN( (unsigned)base_h, (unsigned)(r[k].y - r[0].y-1) );
+                    r[k] = feature->rect[k].r; //assign feature's r to r
+                    base_w = (int)MU_IMIN( (unsigned)base_w, (unsigned)(r[k].width-1) );
+                    base_w = (int)MU_IMIN( (unsigned)base_w, (unsigned)(r[k].x - r[0].x-1) );
+                    base_h = (int)MU_IMIN( (unsigned)base_h, (unsigned)(r[k].height-1) );
+                    base_h = (int)MU_IMIN( (unsigned)base_h, (unsigned)(r[k].y - r[0].y-1) );
                 }
 				nr = cascade->stage_classifier[i].classifier[j].node.two_rects?2:3;
 				base_w += 1;
@@ -575,21 +608,21 @@ void ctSetImagesForHaarClassifierCascade( CtHaarClassifierCascade *cascade, muSi
                 {
                     flagx = 1;
 					if(kx!=0)	//w
-                    new_base_w = ctRound( r[0].width * scale ) / kx;
-                    x0 = ctRound( r[0].x * scale );
+                    new_base_w = muRound( r[0].width * scale ) / kx;
+                    x0 = muRound( r[0].x * scale );
                 }
 
                 if( ky <= 0 )
                 {
                     flagy = 1;
 					if(ky!=0)	//w
-                    new_base_h = ctRound( r[0].height * scale ) / ky;
-                    y0 = ctRound( r[0].y * scale );
+                    new_base_h = muRound( r[0].height * scale ) / ky;
+                    y0 = muRound( r[0].y * scale );
                 }
 
 				for( k = 0; k < nr; k++ )  
                 {
-                    CtRect tr;
+                    muRect_t tr;
                     double correction_ratio;
 
                     if( flagx ) // r to tr
@@ -601,8 +634,8 @@ void ctSetImagesForHaarClassifierCascade( CtHaarClassifierCascade *cascade, muSi
                     }
                     else
                     {
-                        tr.x = ctRound( r[k].x * scale );
-                        tr.width = ctRound( r[k].width * scale );
+                        tr.x = muRound( r[k].x * scale );
+                        tr.width = muRound( r[k].width * scale );
                     }
 
                     if( flagy )
@@ -614,26 +647,22 @@ void ctSetImagesForHaarClassifierCascade( CtHaarClassifierCascade *cascade, muSi
                     }
                     else
                     {
-                        tr.y = ctRound( r[k].y * scale );
-                        tr.height = ctRound( r[k].height * scale );
+                        tr.y = muRound( r[k].y * scale );
+                        tr.height = muRound( r[k].height * scale );
                     }
 
 #if MU_ADJUST_WEIGHTS
                     {
                     // RAINER START
-                    const float orig_feature_size =  (float)(feature->rect[k].r.width)*feature->rect[k].r.height;
-                    const float orig_norm_size = (float)(_cascade->orig_window_size.width)*(_cascade->orig_window_size.height);
-                    const float feature_size = float(tr.width*tr.height);
-                    //const float normSize    = float(equRect.width*equRect.height);
+                    const float orig_feature_size = (float)(feature->rect[k].r.width)*feature->rect[k].r.height;
+                    const float orig_norm_size = (float)(cascade->orig_window_size.width)*(cascade->orig_window_size.height);
+                    const float feature_size = (float)(tr.width*tr.height);
                     float target_ratio = orig_feature_size / orig_norm_size;
-                    //float isRatio = featureSize / normSize;
-                    //correctionRatio = targetRatio / isRatio / normSize;
                     correction_ratio = target_ratio / feature_size;
                     // RAINER END
                     }
 #else
-                    correction_ratio = weight_scale * (!feature->tilted ? 1 : 0.5);
-					//correction_ratio = 1;
+                    correction_ratio = weight_scale;
 #endif
 
                     if( !feature->tilted )  //tr to hidfeature's r
@@ -643,15 +672,6 @@ void ctSetImagesForHaarClassifierCascade( CtHaarClassifierCascade *cascade, muSi
                         feature->rect[k].p2 = sum + sumSize.width*(tr.y + tr.height) + tr.x;
                         feature->rect[k].p3 = sum + sumSize.width*(tr.y + tr.height) + tr.x + tr.width;
                     }
-                    /*
-                    else
-                    {
-                        feature->rect[k].p2 = tilted + sumSize.width*(tr.y + tr.width) + tr.x + tr.width;
-                        feature->rect[k].p3 = tilted + sumSize.width*(tr.y + tr.width + tr.height) + tr.x + tr.width - tr.height;
-                        feature->rect[k].p0 = tilted + sumSize.width*tr.y, tr.x;
-                        feature->rect[k].p1 = tilted + sumSize.width*(tr.y + tr.height) + tr.x - tr.height;
-						//printf("YO");
-                    }*/
 
                     feature->rect[k].weight = (float)(feature->rect[k].ori_weight * correction_ratio);
 
@@ -665,20 +685,6 @@ void ctSetImagesForHaarClassifierCascade( CtHaarClassifierCascade *cascade, muSi
 			}
 		}
 	}
-	//printf("test %d", base_w);
-}
-
-//Main tmp
-void testtmp()
-{
-    ///Set examinator's sum, sqsum - locate mem for each video/resolution
-     //muSize_t sumSize;
-     //sumSize.width = img->width + 1;
-     //sumSize.height = img->height + 1;
-     //sum  = (int *)calloc(sumSize.width*sumSize.height, sizeof(int));
-     //sqsum = (double *)calloc(sumSize.width*sumSize.height, sizeof(double));
-    ///Calculate Integral image for each frame once
-
 }
 
 //Integral Image Light
@@ -686,7 +692,7 @@ void testtmp()
 //examinator->muIntegralImage Itlmg
 //test
 //opt #if win
-//opt ctIntegral
+//opt muCalcIntegralImage
 //opt locate @ muexamin_run
 muIntegralImg_t* muIntegral_Light(muImage_t *img)
 {
@@ -702,7 +708,7 @@ muIntegralImg_t* muIntegral_Light(muImage_t *img)
     Itlmg->imgSize.width = img->width;
     Itlmg->imgSize.height = img->height;
     inputData = img->imagedata;
-    ctIntegral(inputData, Itlmg->sum, Itlmg->sqsum, 0, Itlmg->imgSize, 1);
+    muCalcIntegralImage(inputData, Itlmg->sum, Itlmg->sqsum, Itlmg->imgSize);
     return Itlmg;
 }
 
@@ -715,10 +721,9 @@ void muIntegral_LightRelease(muIntegralImg_t* Itlmg)
 //SetImage Light -- Wait for learning program done
 
 //Object Detection Light
-void muObjectDetection_Light(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSeq_t* Objects, CtHaarClassifierCascade* cascade, double scaleFactor, muSize_t minSize, muSize_t maxSize)
+void muObjectDetection_Light(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSeq_t* Objects, MuSimpleDetector* cascade, double scaleFactor, muSize_t minSize, muSize_t maxSize)
 {
     //Create result sequence
-    muSize_t sumSize;
     int n_factors = 0;
     double factor;
     int iy, ix;
@@ -744,10 +749,10 @@ void muObjectDetection_Light(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSeq_t* 
     {   
         const double ystep = factor > 2? factor: 2; //Scan step increase when window size increase after totalscalefactor is bigger than 2
         
-        muSize_t winSize = { ctRound( cascade->orig_window_size.width * factor ),
-                                ctRound( cascade->orig_window_size.height * factor )};
+        muSize_t winSize = { muRound( cascade->orig_window_size.width * factor ),
+                                muRound( cascade->orig_window_size.height * factor )};
         
-        CtRect rRect = { 0, 0, 0, 0 };
+        muRect_t rRect = { 0, 0, 0, 0 };
 
         startX = ScanROI.x;
         startY = ScanROI.y;
@@ -760,7 +765,7 @@ void muObjectDetection_Light(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSeq_t* 
         if ( winSize.width > maxSize.width || winSize.height > maxSize.height )
             break;
 
-        ctSetImagesForHaarClassifierCascade( cascade, Itlmg->sumSize, Itlmg->sum, Itlmg->sqsum, 0, 0, factor );
+        muSetImagesForHaarClassifierCascade( cascade, Itlmg->sumSize, Itlmg->sum, Itlmg->sqsum, factor );
 
         for( iy = startY; iy < endY; iy+=ystep )
         {
@@ -768,7 +773,7 @@ void muObjectDetection_Light(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSeq_t* 
             //int result;
             for( ix = startX; ix < endX; ix += ixstep )
             {
-                result = ctRunHaarClassifierCascade( cascade, Itlmg->sumSize, ix, iy, 0 );
+                result = ctRunHaarClassifierCascade( cascade, Itlmg->sumSize, ix, iy, 10 );
                 if( result > 0 )
                 {
                     rRect.x = ix;
@@ -783,12 +788,10 @@ void muObjectDetection_Light(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSeq_t* 
         }
     }
 
-    //free(sum);
-    //free(sqsum);
 }
 
 //Object Detection Light
-void muObjectDetection_SuperLight(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSeq_t* Objects, CtHaarClassifierCascade* cascade, muSize_t winSize)
+void muObjectDetection_SuperLight(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSeq_t* Objects, MuSimpleDetector* cascade, muSize_t winSize)
 {
     //Create result sequence
     muSize_t sumSize;
@@ -798,7 +801,7 @@ void muObjectDetection_SuperLight(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSe
     int startX, startY;
     int endX, endY;
     double ystep;
-	CtRect rRect = { 0, 0, 0, 0 };
+	muRect_t rRect = { 0, 0, 0, 0 };
 
     ScanROI.x = ScanROI.x < 0 ? 0:ScanROI.x;
     ScanROI.y = ScanROI.y < 0 ? 0:ScanROI.y;
@@ -815,15 +818,15 @@ void muObjectDetection_SuperLight(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSe
 
     ystep = factor > 2? factor: 2; //Scan step increase when window size increase after totalscalefactor is bigger than 2
     
-    winSize.width = ctRound( cascade->orig_window_size.width * factor );
-    winSize.height = ctRound( cascade->orig_window_size.height * factor );
+    winSize.width = muRound( cascade->orig_window_size.width * factor );
+    winSize.height = muRound( cascade->orig_window_size.height * factor );
 
     startX = ScanROI.x;
     startY = ScanROI.y;
     endX = ScanROI.x+ScanROI.width - winSize.width;
     endY = ScanROI.y+ScanROI.height - winSize.height;
 
-    ctSetImagesForHaarClassifierCascade( cascade, Itlmg->sumSize, Itlmg->sum, Itlmg->sqsum, 0, 0, factor );
+    muSetImagesForHaarClassifierCascade( cascade, Itlmg->sumSize, Itlmg->sum, Itlmg->sqsum, factor );
 
     for( iy = startY; iy < endY; iy+=ystep )
     {
@@ -843,135 +846,19 @@ void muObjectDetection_SuperLight(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSe
             }
             ixstep = result != 0 ? ystep : ystep+1;
         }// for scanning x
-    }// for scanning y 
-
+    }// for scanning y s
 }
 
-void muObjectDetection1(muImage_t *img, muSeq_t* Objects, CtHaarClassifierCascade* cascade, double scaleFactor, int minNeighbors, int EdgeFlags, muSize_t minSize, muSize_t maxSize)
+muSeq_t *muObjectDetection(muImage_t *img, MuSimpleDetector* cascade, double scaleFactor, muSize_t minSize, muSize_t maxSize)
 {
-    //Create result sequence
-    MU_8U *inputData;
-    muSize_t sumSize;
-    muSize_t imgSize;
-    int *sum;
-    double *sqsum;
-    int *EdgeSum = NULL;
-    //Pre calculate n_factors
-    int n_factors = 0;
-    double factor;
-    //int *tilted = new int[sumSize.height*sumSize.width];
-    int iy, ix;
-    int x, y;
-    int result, ixstep;
-
-    sumSize.width = img->width + 1;
-    sumSize.height = img->height + 1;
-    imgSize.width = img->width;
-    imgSize.height = img->height;
-    inputData = img->imagedata;
-    sum  = (int *)calloc(sumSize.width*sumSize.height, sizeof(int));
-    sqsum = (double *)calloc(sumSize.width*sumSize.height, sizeof(double));
-
-    //if(cascade->has_tilted_features)
-    //    ctIntegral(img,sum,sqsum,tilted,imgSize,1);
-    //else
-    ctIntegral(inputData, sum, sqsum, 0, imgSize, 1);
-
-    if(EdgeFlags==1)
-    {
-        unsigned char *EdgeImg;
-        
-        EdgeImg = (unsigned char *)calloc(imgSize.height*imgSize.width, sizeof(unsigned char));
-        
-        EdgeSum = (int *)calloc(sumSize.height*sumSize.width, sizeof(int));
-    
-        //prewitt
-        //SobelFilter(img, EdgeImg, imgSize.width, imgSize.height);
-        ctIntegral(EdgeImg,EdgeSum,0,0,imgSize,1);
-        free(EdgeImg);
-    }
-
-
-    for( n_factors = 0, factor = 1;
-             factor*cascade->orig_window_size.width < imgSize.width - 10 &&
-             factor*cascade->orig_window_size.height < imgSize.height - 10;
-             n_factors++, factor *= scaleFactor );
-    
-    factor = 1;
-    for( ; n_factors-- > 0; factor *= scaleFactor)
-    {   
-        const double ystep = factor > 2? factor: 2; //Scan step increase when window size increase after totalscalefactor is bigger than 2
-        
-        muSize_t winSize = { ctRound( cascade->orig_window_size.width * factor ),
-                                ctRound( cascade->orig_window_size.height * factor )};
-        
-        CtRect rRect = { 0, 0, 0, 0 };
-        int startX = 0, startY = 0;
-        int endX = ctRound((imgSize.width - winSize.width) / ystep);
-        int endY = ctRound((imgSize.height - winSize.height) / ystep);
-
-        if( winSize.width < minSize.width || winSize.height < minSize.height )
-            continue;
-
-        if ( winSize.width > maxSize.width || winSize.height > maxSize.height )
-            break;
-
-        ctSetImagesForHaarClassifierCascade( cascade, sumSize, sum, sqsum, 0, EdgeSum, factor );
-
-        for( iy = startY; iy < endY; iy++ )
-        {
-            y = ctRound(iy*ystep);
-            ixstep = 1;
-            //int result;
-            for( ix = startX; ix < endX; ix += ixstep )
-            {
-                if( EdgeFlags==1 )
-                {
-                    int p_offset = iy*imgSize.width + ix;
-                    int EdgeS = calc_sum(EdgeP, p_offset);
-                    if( EdgeS < EdgeRectTH )
-                    {
-                        ixstep = 2;
-                        continue;
-                    }
-                }
-                x = ctRound(ix*ystep); // it should really be ystep, not ixstep
-                result = ctRunHaarClassifierCascade( cascade, sumSize, x, y, 0 );
-                if( result > 0 )
-                {
-                    rRect.x = x;
-                    rRect.y = y;
-                    rRect.width = winSize.width;
-                    rRect.height = winSize.height;
-                    //rectList.push_back(rRect);
-                    muPushSeq(Objects, (MU_VOID *)&rRect);
-                }
-                ixstep = result != 0 ? 1 : 2;
-            }
-        }
-    }
-    
-    free(sum);
-    free(sqsum);
-    if(EdgeSum)
-    free(EdgeSum);
-    //delete tilted;
-}
-
-muSeq_t *muObjectDetection(muImage_t *img, CtHaarClassifierCascade* cascade, double scaleFactor, int minNeighbors, int EdgeFlags, muSize_t minSize, muSize_t maxSize)
-{
-    //Create result sequence
-	MU_8U *inputData;
-	muSeq_t *rectList;
-	muSize_t sumSize;
-	muSize_t imgSize;
+	MU_8U *inputData; //Image data
+	muSeq_t *rectList; //Result rectangle list
+	muSize_t sumSize; //Size of integral image
+	muSize_t imgSize; //Size of image
 	int *sum;
 	double *sqsum;
-    int *EdgeSum = NULL;
-	//Pre calculate n_factors
 	int n_factors = 0;
 	double factor;
-	//int *tilted = new int[sumSize.height*sumSize.width];
 	int iy, ix;
 	int x, y;
 	int result, ixstep;
@@ -984,25 +871,10 @@ muSeq_t *muObjectDetection(muImage_t *img, CtHaarClassifierCascade* cascade, dou
 	sum  = (int *)calloc(sumSize.width*sumSize.height, sizeof(int));
 	sqsum = (double *)calloc(sumSize.width*sumSize.height, sizeof(double));
 
-	rectList = muCreateSeq(sizeof(CtRect));
-	//if(cascade->has_tilted_features)
-    //    ctIntegral(img,sum,sqsum,tilted,imgSize,1);
-	//else
-	ctIntegral(inputData, sum, sqsum, 0, imgSize, 1);
+    //Create result sequence
+	rectList = muCreateSeq(sizeof(muRect_t));
 
-    if(EdgeFlags==1)
-    {
-        unsigned char *EdgeImg;
-		
-		EdgeImg = (unsigned char *)calloc(imgSize.height*imgSize.width, sizeof(unsigned char));
-		
-        EdgeSum = (int *)calloc(sumSize.height*sumSize.width, sizeof(int));
-	
-		//prewitt
-        //SobelFilter(img, EdgeImg, imgSize.width, imgSize.height);
-        ctIntegral(EdgeImg,EdgeSum,0,0,imgSize,1);
-		free(EdgeImg);
-    }
+	muCalcIntegralImage(inputData, sum, sqsum, imgSize);
 
 
 	for( n_factors = 0, factor = 1;
@@ -1013,15 +885,15 @@ muSeq_t *muObjectDetection(muImage_t *img, CtHaarClassifierCascade* cascade, dou
 	factor = 1;
 	for( ; n_factors-- > 0; factor *= scaleFactor)
     {	
-		const double ystep = factor > 2? factor: 2; //Scan step increase when window size increase after totalscalefactor is bigger than 2
+		const double ScanStep = factor > 2? factor: 2; //Scan step increase when window size increase after totalscalefactor is bigger than 2
 		
-		muSize_t winSize = { ctRound( cascade->orig_window_size.width * factor ),
-                                ctRound( cascade->orig_window_size.height * factor )};
+		muSize_t winSize = { muRound( cascade->orig_window_size.width * factor ),
+                                muRound( cascade->orig_window_size.height * factor )};
 		
-		CtRect rRect = { 0, 0, 0, 0 };
+		muRect_t rRect = { 0, 0, 0, 0 };
         int startX = 0, startY = 0;
-		int endX = ctRound((imgSize.width - winSize.width) / ystep);
-		int endY = ctRound((imgSize.height - winSize.height) / ystep);
+		int endX = muRound((imgSize.width - winSize.width) / ScanStep);
+		int endY = muRound((imgSize.height - winSize.height) / ScanStep);
 
         if( winSize.width < minSize.width || winSize.height < minSize.height )
             continue;
@@ -1029,34 +901,22 @@ muSeq_t *muObjectDetection(muImage_t *img, CtHaarClassifierCascade* cascade, dou
         if ( winSize.width > maxSize.width || winSize.height > maxSize.height )
             break;
 
-		ctSetImagesForHaarClassifierCascade( cascade, sumSize, sum, sqsum, 0, EdgeSum, factor );
+		muSetImagesForHaarClassifierCascade( cascade, sumSize, sum, sqsum, factor );
 
         for( iy = startY; iy < endY; iy++ )
         {
-            y = ctRound(iy*ystep);
+            y = muRound(iy*ScanStep);
 			ixstep = 1;
-			//int result;
             for( ix = startX; ix < endX; ix += ixstep )
             {
-                if( EdgeFlags==1 )
-                {
-                    int p_offset = iy*imgSize.width + ix;
-                    int EdgeS = calc_sum(EdgeP, p_offset);
-                    if( EdgeS < EdgeRectTH )
-                    {
-                        ixstep = 2;
-                        continue;
-                    }
-                }
-                x = ctRound(ix*ystep); // it should really be ystep, not ixstep
-                result = ctRunHaarClassifierCascade( cascade, sumSize, x, y, 0 );
+                x = muRound(ix*ScanStep);
+                result = ctRunHaarClassifierCascade( cascade, sumSize, x, y, 5 );
                 if( result > 0 )
 				{
 				    rRect.x = x;
 				    rRect.y = y;
 				    rRect.width = winSize.width;
 				    rRect.height = winSize.height;
-				    //rectList.push_back(rRect);
 					muPushSeq(rectList, (MU_VOID *)&rRect);
 				}
 				ixstep = result != 0 ? 1 : 2;
@@ -1066,11 +926,92 @@ muSeq_t *muObjectDetection(muImage_t *img, CtHaarClassifierCascade* cascade, dou
 	
 	free(sum);
 	free(sqsum);
-	if(EdgeSum)
-	free(EdgeSum);
-	//delete tilted;
 
     return rectList;
 }
 
+/**Merge Function**/
+/*MergeObjDistTH: OverlapTH - 2 means 1/2, 3 means 1/3*/
+/*HitNum: TH for number of merged blocks*/
+void muMergeRectangles(muSeq_t *Rectangles, int MergeObjDistTH, int HitNum)
+{
+    int i, j, MergedNum;
+    int CrossArea, AreaMinX, AreaMaxX, AreaMinY, AreaMaxY;
+    int RecMaxX1, RecMaxX2, RecMinX1, RecMinX2;
+    int RecMaxY1, RecMaxY2, RecMinY1, RecMinY2;
+    long X, Y, Wid, Hei;
+    muSeqBlock_t *current1, *current2, *tmpBlock=NULL;
+    muRect_t *rectp1, *rectp2;
 
+    if(Rectangles != NULL)
+    {
+        current1 = Rectangles->first;
+        while(current1 != NULL)
+        {
+            rectp1 = (muRect_t *)current1->data;
+            X = RecMinX1 = rectp1->x;
+            Y = RecMinY1 = rectp1->y;
+            Wid = rectp1->width;
+            Hei = rectp1->height;
+            RecMaxX1 = RecMinX1 + Wid;
+            RecMaxY1 = RecMinY1 + Hei;
+            MergedNum = 1;
+            current2 = current1->next;
+            while(current2 != NULL)
+            {
+                rectp2 = (muRect_t *)current2->data;
+                RecMinX2 = rectp2->x;
+                RecMinY2 = rectp2->y;
+                RecMaxX2 = RecMinX2 + rectp2->width;
+                RecMaxY2 = RecMinY2 + rectp2->height;
+                tmpBlock=NULL;
+                //Sum of x, y, w, h; if overlapped
+                if(!(RecMaxX2<=RecMinX1 || RecMinX2>=RecMaxX1 ||
+                 RecMaxY2<=RecMinY1 || RecMinY2>=RecMaxY1 ))
+                {
+                    AreaMinX = RecMinX2 > RecMinX1 ? RecMinX2 : RecMinX1;
+                    AreaMaxX = RecMaxX2 < RecMaxX1 ? RecMaxX2 : RecMaxX1;
+                    AreaMinY = RecMinY2 > RecMinY1 ? RecMinY2 : RecMinY1;
+                    AreaMaxY = RecMaxY2 < RecMaxY1 ? RecMaxY2 : RecMaxY1;
+                    CrossArea = (AreaMaxX - AreaMinX)*(AreaMaxY - AreaMinY);
+                    if(CrossArea!=0)
+                    if( rectp1->width*rectp1->height<MergeObjDistTH*CrossArea && rectp2->width*rectp2->height<MergeObjDistTH*CrossArea)
+                    {
+                        /*rectp1->x = (rectp1->x + rectp2->x)/2;
+                        rectp1->y = (rectp1->y + rectp2->y)/2;
+                        rectp1->width = (rectp1->width + rectp2->width)/2;
+                        rectp1->height = (rectp1->height + rectp2->height)/2;*/
+                        // Aggressive Moving Merge
+                        RecMinX1 = rectp2->x;
+                        RecMinY1 = rectp2->y;
+                        RecMaxX1 = RecMinX1 + rectp2->width;
+                        RecMaxY1 = RecMinY1 + rectp2->height;
+                        
+                        X+=rectp2->x;
+                        Y+=rectp2->y;
+                        Wid+=rectp2->width;
+                        Hei+=rectp2->height;
+                        MergedNum++;
+                        tmpBlock = current2;
+                    }
+                }
+                current2 = current2->next;
+                if(tmpBlock!=NULL)
+                    muRemoveAddressNode(&Rectangles, tmpBlock);
+            }
+
+            tmpBlock = current1;
+            current1 = current1->next;
+            //save mean of rect to current1 data
+            if(MergedNum > HitNum)
+            {
+                rectp1->x = X/MergedNum;
+                rectp1->y = Y/MergedNum;
+                rectp1->width = Wid/MergedNum;
+                rectp1->height = Hei/MergedNum;
+            }
+            else
+                muRemoveAddressNode(&Rectangles, tmpBlock);
+        }
+    }
+}

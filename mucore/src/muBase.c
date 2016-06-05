@@ -222,7 +222,7 @@ muImage_t* muCreateImage( muSize_t size, MU_32S depth, MU_32S channels )
 #else
 	if((depth&MU_IMG_HW_ACCE))
 	{
-		platform_malloc(img, channels);
+		//platform_malloc(img, channels);
 		//printf("[%s] phy=%x vir=%x\n",__func__, img->phyaddr, img->imagedata);
 	}
 	else
@@ -257,7 +257,7 @@ muError_t  muReleaseImage( muImage_t** image )
 	}
 	else
 	{
-		platform_free((*image));
+		//platform_free((*image));
 	}
 #endif
 
