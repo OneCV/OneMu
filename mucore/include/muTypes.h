@@ -147,11 +147,7 @@ typedef enum _muResolution
 #define MU_MIN(a,b) a<=b?a:b
 #define MU_IMIN(a,b) ((a) ^ (((a)^(b)) & (((a) < (b)) - 1)))
 
-#if defined WIN32 || defined WIN64
-#define	MU_DBG	printf
-#else
-#define MU_DBG(fmt, str...)	printf("[MULIB]"fmt,##str)
-#endif
+#define MU_DBG(fmt, ...)	printf("[MULIB]"fmt,##__VA_ARGS__)
 
 MU_INLINE MU_32S muRound( MU_64F value )
 {

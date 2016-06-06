@@ -612,7 +612,7 @@ MU_VOID* muGetSeqElement(muSeq_t **seq, MU_32S index)
 unsigned char *muReadBMP(const char *in_filename, int *out_height, int *out_width, int *out_bitcount)
 {
 	int i = 0, j = 0;
-	int fix = 0;					// 為了讓每一行的總 bytes 數為4的倍數，所要補0的個數
+	int fix = 0;					// bmp width align 4 compliment
 	int buf_size = 0;				// Size of data buffer
 	int byte_per_pixel = -1;		// Byte per pixel
 	int palette_number = 0;			// Palette number
@@ -687,9 +687,13 @@ unsigned char *muReadBMP(const char *in_filename, int *out_height, int *out_widt
 			break;
 	}
 
+
 	// Skip palette part
 	if(palette_number != 0)
 		fread(palette, sizeof(rgbQuad_t), palette_number, infp);
+
+	//offset to bmp data
+	fseek(infp, fileheader.bfOffBits, SEEK_SET);
 
 	// Malloc memory space for bitmap data
 	buf_size = infoheader.biWidth * byte_per_pixel * infoheader.biHeight;
@@ -707,14 +711,11 @@ unsigned char *muReadBMP(const char *in_filename, int *out_height, int *out_widt
 		fix = 4 - fix;
 
 	// Read BMP data
-	// BMP 在儲存影像時，資料記錄及讀取都是由圖片的左下到右上，所以要反過來處理
 	for(j=infoheader.biHeight-1; j>=0; j--)
 	{
-		// 讀取真正的 BMP 資料
 		for(i=0; i<infoheader.biWidth * byte_per_pixel; i++)
 			fread(&out_buf[j * infoheader.biWidth * byte_per_pixel + i], sizeof(unsigned char), 1, infp);
 
-		// 跳過補0的資料
 		for(i=0; i<fix; i++)
 			fread(&zero, sizeof(unsigned char), 1, infp);
 	}
@@ -740,11 +741,11 @@ unsigned char *muReadBMP(const char *in_filename, int *out_height, int *out_widt
 int saveBMP(const char *in_filename, unsigned char *in_buf, int in_height, int in_width, int in_bitcount)
 {
 	int i = 0, j = 0;
-	int fix = 0;					// 為了讓每一行的總 bytes 數為4的倍數，所要補0的個數
+	int fix = 0;					// BMP width align 4 compliment
 	int buf_size = 0;				// Size of data buffer
 	int byte_per_pixel = -1;		// Byte per pixel
 	int palette_number = 0;			// Palette number
-	unsigned char zero = '0';		// 補0用的變數
+	unsigned char zero = '0';		// zero buffer
 	FILE *infp = NULL;				// File pointer
 	bitmapFileHeader_t fileheader;	// Bitmap file header
 	bitmapInfoHeader_t infoheader;	// Bitmap file information header
@@ -833,14 +834,11 @@ int saveBMP(const char *in_filename, unsigned char *in_buf, int in_height, int i
 		fwrite(GrayPalette, sizeof(rgbQuad_t), 256, infp);
 
 	// Write data
-	// BMP 在儲存影像時，資料記錄及讀取都是由圖片的左下到右上，所以要反過來處理
 	for(j=in_height-1; j>=0; j--)
 	{
-		// 記錄真正的 BMP 資料
 		for(i=0; i<in_width * byte_per_pixel; i++)
 			fwrite(&in_buf[j * in_width * byte_per_pixel + i], sizeof(unsigned char), 1, infp);
 
-		// 補0的資料
 		for(i=0; i<fix; i++)
 			fwrite(&zero, sizeof(unsigned char), 1, infp);
 	}
