@@ -886,7 +886,7 @@ muImage_t * muLoadBMP(const char *filename)
 /* Save raw data to BMP formant */
 muError_t muSaveBMP(const char *filename, muImage_t *image)
 {
-	MU_32S width, height, bitcount = 24;
+	MU_32S width, height, bitcount;
 
 	width = image->width;
 	height = image->height;
