@@ -312,12 +312,9 @@ typedef struct MuHaarTreeNode
 
 typedef struct MuHaarClassifier
 {
-    int count;
-    //MuHaarFeature* orig_feature;
+    MU_32S count;
     MuHaarTreeNode node;
-    //float* alpha;
 } MuHaarClassifier;
-
 
 typedef struct MuHaarStageClassifier
 {
@@ -350,38 +347,38 @@ typedef struct MuSimpleDetector
 /*Mu Examinator structures*/
 typedef struct MuStatus
 {
-	unsigned char State;
-	unsigned char Trigger;
+	MU_8U State;
+	MU_8U Trigger;
 }MuStatus;
 
 typedef struct MuTag
 {
-	int Type;
-	int x;
-	int y;
-	int width;
-	int height;
+	MU_32S Type;
+	MU_32S x;
+	MU_32S y;
+	MU_32S width;
+	MU_32S height;
 } MuTag;
 
 typedef struct MuTracker
 {
-	int x;
-	int y;
-	int width;
-	int height;
-	unsigned int life;
-	unsigned char check;
-	unsigned char detected;
+	MU_32S x;
+	MU_32S y;
+	MU_32S width;
+	MU_32S height;
+	MU_32U life;
+	MU_8U check;
+	MU_8U detected;
 } MuTracker;
 
 typedef struct MuExamData
 {
-	int ID;
+	MU_32S ID;
 	muSize_t imgSize;
 	muRect_t ScanROI;
 	MuTag Tag[10];
-	int DetectorSize[10];
-	int TagNum;
+	MU_32S DetectorSize[10];
+	MU_32S TagNum;
 } MuExamData;
 
 typedef struct MuDetector
@@ -393,8 +390,8 @@ typedef struct MuDetector
 	muSeq_t *Tracks;
 	muRect_t ScanROI;
 	MuStatus Status;
-	unsigned char Checked;
-	unsigned char HitNum;
+	MU_8U Checked;
+	MU_8U HitNum;
 } MuDetector;
 
 typedef struct MuExaminator
@@ -406,15 +403,58 @@ typedef struct MuExaminator
 } MuExaminator;
 /*End of mu examinator*/
 
-#define calc_sum(rect,offset) \
-    ((rect).p0[offset] - (rect).p1[offset] - (rect).p2[offset] + (rect).p3[offset])
+/* Mu Boost Learning structure start */
+
+#define features_num 2000
+
+typedef struct MuHaarRect
+{
+    MU_32S x;
+    MU_32S y;
+    MU_32S width;
+    MU_32S height;
+    MU_32F weight;
+} MuHaarRect;
+
+//Structure for Learning weak classifiers
+typedef struct MuLearningHaarClassifier
+{
+    MuHaarFeature feature;
+    MU_8U  rect_num;
+    MU_8U polar;
+    MU_32F threshold;
+    MU_32F left;
+    MU_32F right;
+    //Learning P,N
+    MU_32U remainPos;
+    MU_32U remainNeg;
+}MuLearningHaarClassifier;
+
+//Structure for Learning weak classifier pool
+typedef struct MuLearningModel
+{
+    MU_32S  count;
+    muSize_t orig_window_size;
+    MU_64F inv_window_area;
+    MuLearningHaarClassifier pool[features_num];
+    MU_64F *pq0, *pq1, *pq2, *pq3;
+    MU_32S *p0, *p1, *p2, *p3;
+} MuLearningModel;
+
+//Random Haar
+typedef struct MuRandHaarFeature
+{
+    MU_32S rect_num;
+    MuHaarRect rect[3];
+}MuRandHaarFeature;
+
+/* Mu Boost Learning Structure End */
 
 #define calc_sum(rect,offset) \
     ((rect).p0[offset] - (rect).p1[offset] - (rect).p2[offset] + (rect).p3[offset])
 
 #define calc_sumf(rect,offset) \
-    static_cast<float>((rect).p0[offset] - (rect).p1[offset] - (rect).p2[offset] + (rect).p3[offset])
-/* CT Haarclassifier end */
+    static_cast<MU_32F>((rect).p0[offset] - (rect).p1[offset] - (rect).p2[offset] + (rect).p3[offset])
 
 // if no object be detected return 0, else return 1
 MU_API(MU_VOID) muPtzGetTargetInit(MU_32S width, MU_32S height);
@@ -449,6 +489,7 @@ MU_API(muError_t) muBackgroundModelingReset();
 MU_API(muError_t) muBackgroundModelingRelease();
 
 /**Object Detection Function Headers**/
+MU_API(MU_VOID) muCalcIntegralImage( const MU_8U* src, MU_32S* sum, MU_64F* sqsum, muSize_t size);
 MU_API(MuSimpleDetector*) muLoadSimpleDetector(const char* filename);
 MU_API(MU_VOID) muReleaseSimpleDetector(MuSimpleDetector* Detector);
 MU_API(MU_VOID) muObjectDetectionInit(MuSimpleDetector* Detector, MuHaarStageClassifier *cascade_stages, MuHaarClassifier *cascade_classifiers, double *CascadeParaTable);
@@ -462,6 +503,9 @@ MU_API(MU_VOID) muIntegral_LightRelease(muIntegralImg_t* Itlmg);
 MU_API(MU_VOID) muObjectDetection_Light(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSeq_t* Objects, MuSimpleDetector* Detector, double scaleFactor, muSize_t minSize, muSize_t maxSize);
 MU_API(MU_VOID) muObjectDetection_SuperLight(muIntegralImg_t *Itlmg, muRect_t ScanROI, muSeq_t* Objects, MuSimpleDetector* Detector, muSize_t winSize);
 MU_API(MU_VOID) muMergeRectangles(muSeq_t *Rectangles, int MergeObjDistTH, int HitNum);
+
+/*Boost Learning function*/
+MU_API(MU_VOID) muObjectLearning_Init(muImage_t *img, muRect_t *box, muImage_t *ultraNeg);
 
 /**Examinator Function Headers**/
 MU_API(MU_VOID) Examinator_Init_Buf(MU_8U *buf, MuExaminator *Examinator);

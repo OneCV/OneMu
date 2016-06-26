@@ -320,11 +320,11 @@ muSeqBlock_t * muPushSeq(muSeq_t *seq, MU_VOID* element)
 		sbcurrent->prev = NULL;
 
 		sbcurrent->data = (MU_VOID *)malloc(seq->elem_size);
-		MU_DBG("element size =%d\n", seq->elem_size);
-
+	
+		//MU_DBG("element size =%d\n", seq->elem_size);
+		
 		if(element != NULL)
 			memcpy(sbcurrent->data, element, seq->elem_size);
-
 	}
 	else
 	{	
@@ -344,6 +344,9 @@ muSeqBlock_t * muPushSeq(muSeq_t *seq, MU_VOID* element)
 			memcpy(sbcurrent->data, element, seq->elem_size);	
 
 		sbprev->next = sbcurrent;
+
+		//Add by YT to count the total element in link list
+	    seq->total++;
 
 		sbcurrent->next = NULL;
 		sbcurrent->prev = NULL;
@@ -445,10 +448,10 @@ muError_t muRemoveIndexNode(muSeq_t **seq, MU_32S index)
 
 	head = (*seq)->first;
 	current = head;
+	prev = head;//change by YT, some probelm, here. prev must record the previous one, orginal method make the current and prev record the same address, which break the link
 
 	while(head != NULL)
 	{
-		prev = head;
 		head = head->next;
 		if(index > last)
 		{
@@ -459,6 +462,8 @@ muError_t muRemoveIndexNode(muSeq_t **seq, MU_32S index)
 			(*seq)->first = head;
 			free(current->data);
 			free(current);
+			//Add by YT to count the total element in link list
+			(*seq)->total--;
 			return MU_ERR_SUCCESS;
 		}
 		else if(last == index)
@@ -466,6 +471,8 @@ muError_t muRemoveIndexNode(muSeq_t **seq, MU_32S index)
 			prev->next = NULL;
 			free(current->data);
 			free(current);
+			//Add by YT to count the total element in link list
+			(*seq)->total--;
 			return MU_ERR_SUCCESS;
 		}
 		else if(count == index)
@@ -473,13 +480,15 @@ muError_t muRemoveIndexNode(muSeq_t **seq, MU_32S index)
 			prev->next = head;
 			free(current->data);
 			free(current);
+			//Add by YT to count the total element in link list
+			(*seq)->total--;
 			return MU_ERR_SUCCESS;
 		}
 
 		count++;
+		prev = current;//change by YT, some probelm, here. prev must record the previous one, orginal method make the current and prev record the same address, which break the link
 		current = head;
 	}
-
 
 	return MU_ERR_SUCCESS;
 }
