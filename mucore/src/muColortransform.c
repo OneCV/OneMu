@@ -1,8 +1,31 @@
+/*
+% MIT License
+%
+% Copyright (c) 2016 OneCV
+%
+% Permission is hereby granted, free of charge, to any person obtaining a copy
+% of this software and associated documentation files (the "Software"), to deal
+% in the Software without restriction, including without limitation the rights
+% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+% copies of the Software, and to permit persons to whom the Software is
+% furnished to do so, subject to the following conditions:
+%
+% The above copyright notice and this permission notice shall be included in all
+% copies or substantial portions of the Software.
+%
+% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+% AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+% SOFTWARE.
+*/
+
 /* ------------------------------------------------------------------------- /
  *
  * Module: muColortransform.c
  * Author: Joe Lin
- * Create date: 02/09/2009
  *
  * Description:
  *  This file is presented the color space transformation of image processing 
@@ -13,7 +36,7 @@
 #include "muCore.h"
 
 /*===========================================================================================*/
-/*   muContraststretch                                                                      */
+/*   muContraststretch                                                                       */
 /*                                                                                           */
 /*   DESCRIPTION:                                                                            */
 /*   This routine stretchs the original data to the user-defined value.                      */
@@ -25,8 +48,8 @@
 /*   dst[x,y] = src[x,y]-min/max-min*(2^n-1)                                                 */
 /*	                                                                                         */ 
 /*   USAGE                                                                                   */
-/*   muImage_t *src --> src image                                                             */
-/*   muImage_t *dst --> dst image                                                             */
+/*   muImage_t *src --> src image                                                            */
+/*   muImage_t *dst --> dst image                                                            */
 /*   MU_8U stretchvalue --> this is the maximum value for normalization                      */
 /*===========================================================================================*/
 
@@ -292,7 +315,7 @@ muError_t muRGB2GrayLevel(const muImage_t *src, muImage_t *dst)
 
 	for(i=0,x=0; i<(width*height)*3; i+=3,x++)
 	{
-		b = in[i]; g = in[i+1]; r = in[i+2];
+		r = in[i]; b = in[i+1]; g = in[i+2];
 		y = (MU_16U)((((0.299*r) + (0.587*g) + (0.114*b))));
 		out[x] = y >= 255 ? 255 : y;
 	}

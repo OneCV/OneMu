@@ -1,3 +1,28 @@
+
+/*
+% MIT License
+%
+% Copyright (c) 2016 OneCV
+%
+% Permission is hereby granted, free of charge, to any person obtaining a copy
+% of this software and associated documentation files (the "Software"), to deal
+% in the Software without restriction, including without limitation the rights
+% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+% copies of the Software, and to permit persons to whom the Software is
+% furnished to do so, subject to the following conditions:
+%
+% The above copyright notice and this permission notice shall be included in all
+% copies or substantial portions of the Software.
+%
+% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+% AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+% SOFTWARE.
+*/
+
 /* ------------------------------------------------------------------------------- /
  *
  * Module: muType.h
@@ -70,14 +95,8 @@
 #define MU_32S	int
 #define MU_32F	float
 #define MU_64F	double
-
-#if defined _MSC_VER || defined __BORLANDC__
-#define MU_64S	__int64
-#define MU_64U	unsigned __int64
-#else
 #define MU_64S	long long
 #define MU_64U	unsigned long long
-#endif
 
 typedef enum
 {
@@ -151,62 +170,29 @@ typedef enum _muResolution
 
 MU_INLINE MU_32S muRound( MU_64F value )
 {
-#if MU_SSE2
-    __m128d t = _mm_load_sd( &value );
-    return _mm_mutsd_si32(t);
-#elif defined WIN32 && !defined WIN64 && defined _MSC_VER
-    int t;
-    __asm
-    {
-        fld value;
-        fistp t;
-    }
-    return t;
-#elif (defined HAVE_LRINT) || (defined WIN64 && !defined EM64T && defined MU_ICC)
-    return (int)lrint(value);
-#else
-    /*
-     the algorithm was taken from Agner Fog's optimization guide
-     at http://www.agner.org/assem
-     */
     mu64suf_t temp;
     temp.f = value + 6755399441055744.0;
     return (int)temp.u;
-#endif
 }
 
 
 MU_INLINE MU_32S muFloor( MU_64F value )
 {
-#if MU_SSE2
-    __m128d t = _mm_load_sd( &value );
-    int i = _mm_mutsd_si32(t);
-    return i - _mm_movemask_pd(_mm_cmplt_sd(t,_mm_mutsi32_sd(t,i)));
-#else
     int temp = muRound(value);
     mu32suf_t diff;
     diff.f = (float)(value - temp);
     return temp - (diff.i < 0);
-#endif
 }
 
 
 MU_INLINE MU_32S muCeil( MU_64F value )
 {
-#if MU_SSE2
-    __m128d t = _mm_load_sd( &value );
-    int i = _mm_mutsd_si32(t);
-    return i + _mm_movemask_pd(_mm_cmplt_sd(_mm_mutsi32_sd(t,i),t));
-#else
     int temp = muRound(value);
     mu32suf_t diff;
     diff.f = (float)(temp - value);
     return temp + (diff.i < 0);
-#endif
 }
 
-/************************************ HW engine buffer name *****************************/
-#define MU_IMG_HW_ACCE		0xC00
 
 /************************************ Image type ****************************************/
 #define MU_IMG_DEPTH_8U		0x001
@@ -219,14 +205,6 @@ MU_INLINE MU_32S muCeil( MU_64F value )
 #define MU_IMG_DEPTH_64U	0x008
 #define MU_IMG_DEPTH_64S	0x108
 #define MU_IMG_DEPTH_64F	0x208
-#define MU_IMG_HW_ACCE_8U	0xC01
-#define MU_IMG_HW_ACCE_8S	0xD01
-#define MU_IMG_HW_ACCE_16U	0xC02
-#define MU_IMG_HW_ACCE_16S	0xD02
-#define MU_IMG_HW_ACCE_32U	0xC04
-#define MU_IMG_HW_ACCE_32S	0xD04
-#define MU_IMG_HW_ACCE_64U	0xC08
-#define MU_IMG_HW_ACCE_64S	0xD08
 
 #define MU_IMG_DATAORDER_PIXEL  0
 #define MU_IMG_DATAORDER_PLANE  1
@@ -304,14 +282,12 @@ MU_INLINE muPoint_t muPoint( MU_32S x, MU_32S y )
     return p;
 }
 
-
 typedef struct _muPoint2D32f
 {
     MU_32F x;
     MU_32F y;
 
 }muPoint2D32f_t;
-
 
 MU_INLINE muPoint2D32f_t muPoint2D32f( MU_64F x, MU_64F y )
 {

@@ -1,3 +1,27 @@
+/*
+% MIT License
+%
+% Copyright (c) 2016 OneCV
+%
+% Permission is hereby granted, free of charge, to any person obtaining a copy
+% of this software and associated documentation files (the "Software"), to deal
+% in the Software without restriction, including without limitation the rights
+% to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+% copies of the Software, and to permit persons to whom the Software is
+% furnished to do so, subject to the following conditions:
+%
+% The above copyright notice and this permission notice shall be included in all
+% copies or substantial portions of the Software.
+%
+% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+% IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+% FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+% AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+% LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+% OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+% SOFTWARE.
+*/
+
 /* ------------------------------------------------------------------------- /
  *
  * Module: muBase.c
@@ -25,27 +49,27 @@ typedef struct _bitmapInfoHeader{
 	MU_32U	biSize;
 	MU_32S	biWidth;
 	MU_32S	biHeight;
-	unsigned short	biPlanes;
-	unsigned short	biBitCount;
-	unsigned int	biCompression;
-	unsigned int	biSizeImage;
-	long			biXPelsPerMeter;
-	long			biYPelsPerMeter;
-	unsigned int	biClrUsed;
-	unsigned int	biClrImportant;
+	MU_16U	biPlanes;
+	MU_16U	biBitCount;
+	MU_32U	biCompression;
+	MU_32U	biSizeImage;
+	MU_64S	biXPelsPerMeter;
+	MU_64S	biYPelsPerMeter;
+	MU_32U	biClrUsed;
+	MU_32U	biClrImportant;
 }bitmapInfoHeader_t;
 
 /* load bmp header file */
 typedef struct rgbQuad{
-	unsigned char	rgbBlue;
-	unsigned char	rgbGreen;
-	unsigned char	rgbRed;
-	unsigned char	rgbReserved;
+	MU_8U	rgbBlue;
+	MU_8U	rgbGreen;
+	MU_8U	rgbRed;
+	MU_8U	rgbReserved;
 }rgbQuad_t;
 
 
 // Default value of gray palette
-rgbQuad_t GrayPalette[256] = 
+static rgbQuad_t GrayPalette[256] = 
 { {0x00, 0x00, 0x00, 0x0}, {0x01, 0x01, 0x01, 0x0},
 	{0x02, 0x02, 0x02, 0x0}, {0x03, 0x03, 0x03, 0x0},
 	{0x04, 0x04, 0x04, 0x0}, {0x05, 0x05, 0x05, 0x0},
@@ -188,7 +212,7 @@ muImage_t*  muCreateImageHeader( muSize_t size, MU_32S depth, MU_32S channels )
 	img = (muImage_t*)malloc( sizeof( muImage_t ));
 	if(img == NULL)
 	{
-		printf("muCreateImageHeader Failed!! buffer is NULL\n");
+		MU_DBG("muCreateImageHeader Failed!! buffer is NULL\n");
 		return NULL;
 	}
 
@@ -213,7 +237,7 @@ muImage_t* muCreateImage( muSize_t size, MU_32S depth, MU_32S channels )
 	
 	if(img == NULL)
 	{
-		printf("muCreateImage Failed!! buffer is NULL\n");
+		MU_DBG("muCreateImage Failed!! buffer is NULL\n");
 		return NULL;
 	}
 
@@ -296,11 +320,11 @@ muSeqBlock_t * muPushSeq(muSeq_t *seq, MU_VOID* element)
 		sbcurrent->prev = NULL;
 
 		sbcurrent->data = (MU_VOID *)malloc(seq->elem_size);
-		//printf("element size =%d\n", seq->elem_size);
-
+	
+		//MU_DBG("element size =%d\n", seq->elem_size);
+		
 		if(element != NULL)
 			memcpy(sbcurrent->data, element, seq->elem_size);
-
 	}
 	else
 	{	
@@ -478,7 +502,7 @@ muError_t muRemoveAddressNode(muSeq_t **seq, muSeqBlock_t *ptr)
 
 	if(ptr == NULL)
 	{
-		printf("muRemoveAddressNode = NULL\n");
+		MU_DBG("muRemoveAddressNode = NULL\n");
 		return MU_ERR_NULL_POINTER;
 	}
 
@@ -618,7 +642,7 @@ MU_VOID* muGetSeqElement(muSeq_t **seq, MU_32S index)
 //                  8 means 8 bits, gray imaage
 //                  24 means 24 bits, color image
 //----------------------------------------------------------------------------------------------------
-unsigned char *muReadBMP(const char *in_filename, int *out_height, int *out_width, int *out_bitcount)
+static MU_8U *muReadBMP(const char *in_filename, int *out_height, int *out_width, int *out_bitcount)
 {
 	int i = 0, j = 0;
 	int fix = 0;					// bmp width align 4 compliment
@@ -626,7 +650,7 @@ unsigned char *muReadBMP(const char *in_filename, int *out_height, int *out_widt
 	int byte_per_pixel = -1;		// Byte per pixel
 	int palette_number = 0;			// Palette number
 	unsigned char *out_buf = NULL;	// Data buffer pointer
-	unsigned char zero = '0';		// 補0用的變數
+	unsigned char zero = '0';		// zero compensation
 	FILE *infp = NULL;				// File pointer
 	bitmapFileHeader_t fileheader;	// Bitmap file header
 	bitmapInfoHeader_t infoheader;	// Bitmap file information header
@@ -637,7 +661,7 @@ unsigned char *muReadBMP(const char *in_filename, int *out_height, int *out_widt
 	infp = fopen(in_filename, "rb");
 	if(infp == NULL)
 	{
-		printf("ReadBMP: File does not exist!\n");
+		MU_DBG("ReadBMP: File does not exist!\n");
 		return NULL;
 	}
 
@@ -654,7 +678,7 @@ unsigned char *muReadBMP(const char *in_filename, int *out_height, int *out_widt
 	// In little endian, BM becomes MB
 	if(fileheader.bfType != 'MB')
 	{
-		printf("ReadBMP: Type is not 'BM'!\n");
+		MU_DBG("ReadBMP: Type is not 'BM'!\n");
 		fclose(infp);
 		return NULL;
 	}
@@ -665,7 +689,7 @@ unsigned char *muReadBMP(const char *in_filename, int *out_height, int *out_widt
 	// Check it is compression or not
 	if(infoheader.biCompression != 0)
 	{
-		printf("ReadBMP: Only read no compression BMP!\n");
+		MU_DBG("ReadBMP: Only read no compression BMP!\n");
 		fclose(infp);
 		return NULL;
 	}
@@ -673,7 +697,7 @@ unsigned char *muReadBMP(const char *in_filename, int *out_height, int *out_widt
 	// Check its color type
 	if(infoheader.biBitCount != 8 && infoheader.biBitCount != 24)
 	{
-		printf("ReadBMP: Only read 8 bits and 24 bits BMP!\n");
+		MU_DBG("ReadBMP: Only read 8 bits and 24 bits BMP!\n");
 		fclose(infp);
 		return NULL;
 	}
@@ -702,6 +726,7 @@ unsigned char *muReadBMP(const char *in_filename, int *out_height, int *out_widt
 		fread(palette, sizeof(rgbQuad_t), palette_number, infp);
 
 	//offset to bmp data
+	MU_DBG("read bmp > offbits=%d\n", fileheader.bfOffBits);
 	fseek(infp, fileheader.bfOffBits, SEEK_SET);
 
 	// Malloc memory space for bitmap data
@@ -709,7 +734,7 @@ unsigned char *muReadBMP(const char *in_filename, int *out_height, int *out_widt
 	out_buf = (unsigned char*)malloc(buf_size);
 	if(out_buf == NULL)
 	{
-		printf("ReadBMP: Malloc memory space for BMP data failed!\n");
+		MU_DBG("ReadBMP: Malloc memory space for BMP data failed!\n");
 		fclose(infp);
 		return NULL;
 	}
@@ -747,7 +772,7 @@ unsigned char *muReadBMP(const char *in_filename, int *out_height, int *out_widt
 //                  8 means 8 bits, gray imaage
 //                  24 means 24 bits, color image
 //----------------------------------------------------------------------------------------------------
-int saveBMP(const char *in_filename, unsigned char *in_buf, int in_height, int in_width, int in_bitcount)
+static muError_t saveBMP(const char *in_filename, unsigned char *in_buf, int in_height, int in_width, int in_bitcount)
 {
 	int i = 0, j = 0;
 	int fix = 0;					// BMP width align 4 compliment
@@ -762,23 +787,23 @@ int saveBMP(const char *in_filename, unsigned char *in_buf, int in_height, int i
 	// Check save bmp color type
 	if(in_bitcount != 1 && in_bitcount != 8 && in_bitcount != 24)
 	{
-		printf("SaveBMP: Only save 1 bit, 8 bits and 24 bits BMP!\n");
-		return 0;
+		MU_DBG("SaveBMP: Only save 1 bit, 8 bits and 24 bits BMP!\n");
+		return MU_ERR_NOT_SUPPORT;
 	}
 
 	// Check buffer exists or not
 	if(in_buf == NULL)
 	{
-		printf("SaveBMP: Data buffer does not exist!\n");
-		return 0;
+		MU_DBG("SaveBMP: Data buffer does not exist!\n");
+		return MU_ERR_OUT_OF_MEMORY;
 	}
 
 	// Open file to write and check result
 	infp = fopen(in_filename, "wb");
 	if(infp == NULL)
 	{
-		printf("SaveBMP: Open file pointer failed!\n");
-		return 0;
+		MU_DBG("SaveBMP: Open file pointer failed!\n");
+		return MU_ERR_OUT_OF_MEMORY;
 	}
 
 	// Determine palette number and byte per pixel
@@ -853,7 +878,7 @@ int saveBMP(const char *in_filename, unsigned char *in_buf, int in_height, int i
 	}
 
 	fclose(infp);
-	return 1;
+	return MU_ERR_SUCCESS;
 }
 
 
@@ -910,7 +935,7 @@ muError_t muSaveBMP(const char *filename, muImage_t *image)
 
 	if(!saveBMP(filename, image->imagedata, height, width, bitcount))
 	{
-		printf("error\n");
+		MU_DBG("error\n");
 		return MU_ERR_INVALID_PARAMETER;
 	}
 
@@ -1097,7 +1122,7 @@ muError_t muCheckDepth(MU_32S amount, ...)
 	
 	if((amount <= 0) || (amount % 2 != 0))
 	{
-		printf("[MU_LIB] \"muCheckDepth\" parametaer amount must be an even and larger than zero\n");
+		MU_DBG("[MU_LIB] \"muCheckDepth\" parametaer amount must be an even and larger than zero\n");
 		return MU_ERR_INVALID_PARAMETER;
 	}
 
@@ -1112,13 +1137,13 @@ muError_t muCheckDepth(MU_32S amount, ...)
 
 			if(buf == NULL)
 			{
-				printf("[MU_LIB]\"muCheckDepth\" buffer = NULL\n");
+				MU_DBG("[MU_LIB]\"muCheckDepth\" buffer = NULL\n");
 				return MU_ERR_NULL_POINTER;
 			}
 
 			if((buf->depth & 0x00F) != (depth & 0x00F))
 			{
-				printf("[MU_LIB] \"muCheckDepth\" muimage->depth %x != depth %x\n", buf->depth, depth);
+				MU_DBG("[MU_LIB] \"muCheckDepth\" muimage->depth %x != depth %x\n", buf->depth, depth);
 				return MU_ERR_INVALID_PARAMETER;
 			}
 		}
@@ -1142,22 +1167,22 @@ MU_VOID muDebugError(muError_t errorcode)
 	switch(errorcode)
 	{
 		case MU_ERR_INVALID_PARAMETER : 
-			printf("Invalid parameter\n");
+			MU_DBG("Invalid parameter\n");
 			break;
 		case MU_ERR_NULL_POINTER :
-			printf("Null pointer or pointer error\n");
+			MU_DBG("Null pointer or pointer error\n");
 			break;
 		case MU_ERR_OUT_OF_MEMORY :
-			printf("Memory leak or out of memory\n");
+			MU_DBG("Memory leak or out of memory\n");
 			break;
 		case MU_ERR_NOT_SUPPORT :
-			printf("No support\n");
+			MU_DBG("No support\n");
 			break;
 		case MU_ERR_UNKNOWN :
-			printf("Unknow error\n");
+			MU_DBG("Unknow error\n");
 			break;
 		default :
-			printf("Error code is no defined\n");
+			MU_DBG("Error code is no defined\n");
 			break;
 
 	}
