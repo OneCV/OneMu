@@ -59,6 +59,8 @@ MU_API(muError_t) muPrewitt( const muImage_t* src, muImage_t* dst);
 /* Canny edge detection*/
 MU_API(muError_t) muCanny( const muImage_t* src, muImage_t* dst, muImage_t *ang);
 
+/* Edge-based no reference blur metric */
+MU_API(muError_t) muNoRefBlurMetric(muImage_t *src, MU_32S *bm);
 
 /****************** Sampling, Interpolation and Geometrical Transforms ******************/
 
@@ -206,6 +208,29 @@ MU_API (muError_t) muLKOpticalFlow(muImage_t *imageI, muImage_t *imageJ, MU_32S 
 MU_API (muError_t) muTransVector2Angle(muImage_t *curFrame, MU_32S *vectorX, MU_32S *vectorY, MU_32S *lostTable, MU_32S *angleTable);
 
 MU_API (muError_t) muGetVectorImage(MU_32S *angleMap, muImage_t *src, muImage_t *dst);
+
+
+/******** Image Matching ********/
+typedef struct _muMSEInfo
+{
+  MU_64F oriData; // original data
+  MU_64F norData; // normalized data 0~1
+}muMSEInfo_t;
+
+/**only support Y data and RGB channel**/
+MU_API (muError_t) muMSE(const muImage_t *src1, const muImage_t *src2, muMSEInfo_t *mseInfo);
+
+/**only support Y data and RGB channel**/
+MU_API (muError_t) muRMSE(const muImage_t *src1, const muImage_t *src2, muMSEInfo_t *rmse);
+
+/**only support Y data and RGB channel**/
+MU_API (muError_t) muPSNR(const muImage_t *src1, const muImage_t *src2, MU_64F *psnr);
+
+/**only support Y data and RGB channel**/
+MU_API (muError_t) muNCC(const muImage_t *src1, const muImage_t *src2, MU_64F *ncc);
+
+/**only support Y data and RGB channel**/
+MU_API (muError_t) muSSIM(const muImage_t *src1, const muImage_t *src2, MU_64F *ssim);
 
 #endif /*_MU_CORE_H_*/
 

@@ -154,7 +154,6 @@ typedef enum _muResolution
     MU_RES_QVGA = 76800,         //320*240
 }muResolution_t;
 
-
 /**************************** Common macros and inline functions *************************/
 #define MU_FALSE 0
 #define MU_TRUE  1
