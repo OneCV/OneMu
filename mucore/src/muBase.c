@@ -25,7 +25,7 @@
 /* ------------------------------------------------------------------------- /
  *
  * Module: muBase.c
- * Author: Joe Lin
+ * Author: Joe Lin, YT
  *
  * Description:
  *    the basic functions
@@ -34,7 +34,6 @@
 
 #include "muCore.h"
 
-//TODO Bitmap function naming rule
 /* load bmp header file */
 typedef struct _bitmapFileHeader{
 	MU_16U	bfType;
@@ -53,8 +52,8 @@ typedef struct _bitmapInfoHeader{
 	MU_16U	biBitCount;
 	MU_32U	biCompression;
 	MU_32U	biSizeImage;
-	MU_64S	biXPelsPerMeter;
-	MU_64S	biYPelsPerMeter;
+	MU_32U	biXPelsPerMeter;
+	MU_32U	biYPelsPerMeter;
 	MU_32U	biClrUsed;
 	MU_32U	biClrImportant;
 }bitmapInfoHeader_t;
@@ -205,7 +204,7 @@ static rgbQuad_t GrayPalette[256] =
  *          Array allocation, deallocation, initialization and access to elements         *
  \****************************************************************************************/
 /* Allocates and initializes muImage_t header (not allocates data) */
-muImage_t*  muCreateImageHeader( muSize_t size, MU_32S depth, MU_32S channels )
+muImage_t* muCreateImageHeader( muSize_t size, MU_32S depth, MU_32S channels )
 {
 	muImage_t* img=0;
 
@@ -321,8 +320,6 @@ muSeqBlock_t * muPushSeq(muSeq_t *seq, MU_VOID* element)
 
 		sbcurrent->data = (MU_VOID *)malloc(seq->elem_size);
 	
-		//MU_DBG("element size =%d\n", seq->elem_size);
-		
 		if(element != NULL)
 			memcpy(sbcurrent->data, element, seq->elem_size);
 	}
@@ -345,7 +342,6 @@ muSeqBlock_t * muPushSeq(muSeq_t *seq, MU_VOID* element)
 
 		sbprev->next = sbcurrent;
 
-		//Add by YT to count the total element in link list
 	    seq->total++;
 
 		sbcurrent->next = NULL;
@@ -398,8 +394,6 @@ muSeqBlock_t * muPushSeqFront(muSeq_t *seq, MU_VOID* element)
 
 }
 
-
-
 /* clear the whole sequence */
 MU_VOID muClearSeq(muSeq_t **seq)
 {
@@ -448,7 +442,7 @@ muError_t muRemoveIndexNode(muSeq_t **seq, MU_32S index)
 
 	head = (*seq)->first;
 	current = head;
-	prev = head;//change by YT, some probelm, here. prev must record the previous one, orginal method make the current and prev record the same address, which break the link
+	prev = head;
 
 	while(head != NULL)
 	{
@@ -462,7 +456,6 @@ muError_t muRemoveIndexNode(muSeq_t **seq, MU_32S index)
 			(*seq)->first = head;
 			free(current->data);
 			free(current);
-			//Add by YT to count the total element in link list
 			(*seq)->total--;
 			return MU_ERR_SUCCESS;
 		}
@@ -471,7 +464,6 @@ muError_t muRemoveIndexNode(muSeq_t **seq, MU_32S index)
 			prev->next = NULL;
 			free(current->data);
 			free(current);
-			//Add by YT to count the total element in link list
 			(*seq)->total--;
 			return MU_ERR_SUCCESS;
 		}
@@ -480,13 +472,12 @@ muError_t muRemoveIndexNode(muSeq_t **seq, MU_32S index)
 			prev->next = head;
 			free(current->data);
 			free(current);
-			//Add by YT to count the total element in link list
 			(*seq)->total--;
 			return MU_ERR_SUCCESS;
 		}
 
 		count++;
-		prev = current;//change by YT, some probelm, here. prev must record the previous one, orginal method make the current and prev record the same address, which break the link
+		prev = current;
 		current = head;
 	}
 
@@ -726,7 +717,6 @@ static MU_8U *muReadBMP(const char *in_filename, int *out_height, int *out_width
 		fread(palette, sizeof(rgbQuad_t), palette_number, infp);
 
 	//offset to bmp data
-	MU_DBG("read bmp > offbits=%d\n", fileheader.bfOffBits);
 	fseek(infp, fileheader.bfOffBits, SEEK_SET);
 
 	// Malloc memory space for bitmap data
@@ -933,9 +923,9 @@ muError_t muSaveBMP(const char *filename, muImage_t *image)
 			break;
 	}
 
-	if(!saveBMP(filename, image->imagedata, height, width, bitcount))
+	if(saveBMP(filename, image->imagedata, height, width, bitcount))
 	{
-		MU_DBG("error\n");
+		MU_DBG("muSaveBMP:error\n");
 		return MU_ERR_INVALID_PARAMETER;
 	}
 

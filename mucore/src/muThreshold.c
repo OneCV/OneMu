@@ -275,6 +275,7 @@ muError_t muOtsuThresholding(const muImage_t * src, muImage_t * dst)
  *                                                      
  *****************************************************************************************************************
 */
+
 	while( outidx < 256)
 	{
 		while(graynum[ outidx ].firstptr != NULL)
@@ -286,12 +287,11 @@ muError_t muOtsuThresholding(const muImage_t * src, muImage_t * dst)
 			ohidx = (int)(Idxnum / iwidth);
 
 			owidx = (Idxnum % iwidth);
-
-			if( outidx <= Candidateflag )
-				OutData[ ohidx * iwidth + owidx ] = 0;
-
+		
+			if(outidx <= Candidateflag)
+				OutData[ohidx*iwidth+owidx ] = 0;
 			else
-				OutData[ ohidx * iwidth + owidx ] = 255;
+				OutData[ohidx*iwidth+owidx ] = 255;
 
 			out[ ohidx * iwidth + owidx ] = (unsigned char)OutData[ ohidx * iwidth + owidx ];
 

@@ -35,12 +35,8 @@
 /* MU include files */
 #include "muCore.h"
 
-typedef struct _muMSEInfo
-{
-	MU_64F oriData; // original data
-	MU_64F norData; // normalized data 0~1
-}muMSEInfo_t;
 
+// https://en.wikipedia.org/wiki/Mean_squared_error
 // normalized mean squared error -> nmse
 // mse/max_mse
 muError_t muMSE(const muImage_t *src1, const muImage_t *src2, muMSEInfo_t *mseInfo)
@@ -64,6 +60,7 @@ muError_t muMSE(const muImage_t *src1, const muImage_t *src2, muMSEInfo_t *mseIn
 	rsum = 0;
 	gsum = 0;
 	bsum = 0;
+	
 	if(src1->channels == 1)
 	{
 		for(i=0; i < area; i++)
@@ -100,6 +97,7 @@ muError_t muMSE(const muImage_t *src1, const muImage_t *src2, muMSEInfo_t *mseIn
 	return MU_ERR_SUCCESS;
 }
 
+//https://en.wikipedia.org/wiki/Root-mean-square_deviation
 //normalized root mean squared error -> rmse
 muError_t muRMSE(const muImage_t *src1, const muImage_t *src2, muMSEInfo_t *rmse)
 {
@@ -118,6 +116,7 @@ muError_t muRMSE(const muImage_t *src1, const muImage_t *src2, muMSEInfo_t *rmse
 	return MU_ERR_SUCCESS;
 }
 
+//https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio
 muError_t muPSNR(const muImage_t *src1, const muImage_t *src2, MU_64F *psnr)
 {
 	muMSEInfo_t mse;
@@ -141,6 +140,8 @@ muError_t muPSNR(const muImage_t *src1, const muImage_t *src2, MU_64F *psnr)
 // bar = mean
 // std = standard deviation
 // (f(x,y) - f_bar/f_std x t(x,y) - t_bar/t_std)/N
+// http://moodlearchive.epfl.ch/2007-2008/mod/resource/view.php?id=115231
+// http://scribblethink.org/Work/nvisionInterface/nip.html
 muError_t muNCC(const muImage_t *src1, const muImage_t *src2, MU_64F *ncc)
 {
 	MU_32S i,j;
@@ -265,3 +266,187 @@ muError_t muNCC(const muImage_t *src1, const muImage_t *src2, MU_64F *ncc)
 }
 
 
+static MU_64F calNbyN(MU_8U *src1, MU_8U *src2)
+{
+	MU_32S i,j;
+	MU_64F sum1=0, sum2=0, sum3=0;
+	MU_64F mean1, mean2, mean3;
+	MU_64F var1, var2, var3;
+	MU_64F covar1;
+	MU_64F temp1, temp2;
+	const MU_64F c1 = 6.5025; //c1=(k1L)^2, k1=0.01,L=bits per pixel
+	const MU_64F c2 = 58.5225; //c2 = (k2L)^2 k2=0.03
+	MU_64F ssim;
+
+	//NxN = 8x8 = 64;
+	for(i=0; i<64; i++)
+	{
+		sum1 += *(src1+i);
+		sum2 += *(src2+i);
+	}
+
+	mean1 = (MU_64F)sum1/(MU_64F)64.0; 
+	mean2 = (MU_64F)sum2/(MU_64F)64.0;
+
+	sum1 = 0; 
+	sum2 = 0;
+		
+	for(i=0; i<64; i++)
+	{
+		//get variance	
+		sum1 += pow((*(src1+i) - mean1), 2);
+		sum2 += pow((*(src2+i) - mean2), 2);
+
+		//get co-variance
+		sum3 += (*(src1+i)-mean1)*(*(src2+i)-mean2);
+	}
+	
+	var1 = sum1/(MU_64F)64.0; 
+	var2 = sum2/(MU_64F)64.0;
+
+	covar1 = sum3/(MU_64F)64.0;
+		
+	//R, B, G. 3 dimenson ssim
+	//(2uxuy+c1)*(2covarxy+c2)/(ux^2+uy^2+C1)(varx+vary+c2)
+	temp1 = (2*mean1*mean2+c1);
+	temp2 = (2*covar1+c2);
+	ssim = (temp1*temp2)/(((mean1*mean1)+(mean2*mean2)+c1)*(var1+var2+c2));
+
+	return ssim;
+
+}
+
+// https://en.wikipedia.org/wiki/Structural_similarity
+// mean
+// variance
+// covariance(x-x_bar)*(y-y_bar)/n
+muError_t muSSIM(const muImage_t *src1, const muImage_t *src2, MU_64F *ssim)
+{
+	MU_32S i,j;
+	MU_32S area, count = 0;
+	muImage_t *r1, *g1, *b1;
+	muImage_t *r2, *g2, *b2;
+	muImage_t *r1temp, *g1temp, *b1temp;
+	muImage_t *r2temp, *g2temp, *b2temp;
+
+	muSize_t size, subSize;
+	muRect_t rect;
+	MU_64F ssimR, ssimB, ssimG;
+	MU_64F sumR = 0, sumB = 0, sumG = 0;
+
+	if((src1->channels != src2->channels) || \
+	(src1->width != src2->width) || (src1->height != src2->height))
+	{
+		return MU_ERR_NOT_SUPPORT;
+	}
+
+	area = src1->width * src1->height;
+	size.width = src1->width;
+	size.height = src1->height;
+	if(src1->width < 8 && src1->height < 8)
+	{
+		MU_DBG("width & height  <8,  not support!\n");
+		return MU_ERR_NOT_SUPPORT;
+	}
+
+	if(src1->channels == 1)
+	{
+		for(i=0; i<size.width-7; i++)
+			for(j=0; j<size.height-7; j++)
+			{
+				rect.x = i;
+				rect.y = j;
+				rect.width = 8;
+				rect.height = 8;
+				subSize.width = rect.width;
+				subSize.height = rect.height;
+
+				r1temp = muCreateImage(subSize, MU_IMG_DEPTH_8U, 1);
+				r2temp = muCreateImage(subSize, MU_IMG_DEPTH_8U, 1);
+				muGetSubImage(src1, r1temp, rect);
+				muGetSubImage(src2, r2temp, rect);
+				sumR += calNbyN(r1temp->imagedata, r2temp->imagedata);
+		
+				muReleaseImage(&r1temp);
+				muReleaseImage(&r2temp);
+				count++;
+			}
+
+		*ssim = sumR/(MU_64F)count;
+	}
+	else if(src1->channels == 3)
+	{
+		r1 = muCreateImage(size, MU_IMG_DEPTH_8U, 1);
+		b1 = muCreateImage(size, MU_IMG_DEPTH_8U, 1);
+		g1 = muCreateImage(size, MU_IMG_DEPTH_8U, 1);
+		r2 = muCreateImage(size, MU_IMG_DEPTH_8U, 1);
+		b2 = muCreateImage(size, MU_IMG_DEPTH_8U, 1);
+		g2 = muCreateImage(size, MU_IMG_DEPTH_8U, 1);
+
+		for(i=0, j=0; j<area; j++, i+=3)
+		{
+			//seperate RGB
+			r1->imagedata[j] = src1->imagedata[i];
+			b1->imagedata[j] = src1->imagedata[i+1];
+			g1->imagedata[j] = src1->imagedata[i+2];
+			r2->imagedata[j] = src2->imagedata[i];
+			b2->imagedata[j] = src2->imagedata[i+1];
+			g2->imagedata[j] = src2->imagedata[i+2];
+
+		}
+		
+		for(i=0; i<size.width-7; i++)
+			for(j=0; j<size.height-7; j++)
+			{
+				rect.x = i;
+				rect.y = j;
+				rect.width = 8;
+				rect.height = 8;
+				subSize.width = rect.width;
+				subSize.height = rect.height;
+
+				r1temp = muCreateImage(subSize, MU_IMG_DEPTH_8U, 1);
+				r2temp = muCreateImage(subSize, MU_IMG_DEPTH_8U, 1);
+				muGetSubImage(r1, r1temp, rect);
+				muGetSubImage(r2, r2temp, rect);
+				sumR += calNbyN(r1temp->imagedata, r2temp->imagedata);
+		
+				b1temp = muCreateImage(subSize, MU_IMG_DEPTH_8U, 1);
+				b2temp = muCreateImage(subSize, MU_IMG_DEPTH_8U, 1);
+				muGetSubImage(b1, b1temp, rect);
+				muGetSubImage(b2, b2temp, rect);
+				sumB += calNbyN(b1temp->imagedata, b2temp->imagedata);
+
+				g1temp = muCreateImage(subSize, MU_IMG_DEPTH_8U, 1);
+				g2temp = muCreateImage(subSize, MU_IMG_DEPTH_8U, 1);
+				muGetSubImage(g1, g1temp, rect);
+				muGetSubImage(g2, g2temp, rect);
+				sumG += calNbyN(g1temp->imagedata, g2temp->imagedata);
+
+				muReleaseImage(&r1temp);
+				muReleaseImage(&r2temp);
+				muReleaseImage(&b1temp);
+				muReleaseImage(&b2temp);
+				muReleaseImage(&g1temp);
+				muReleaseImage(&g2temp);
+				count++;
+			}
+
+
+		ssimR = sumR/(MU_64F)count;
+		ssimB = sumB/(MU_64F)count;
+		ssimG = sumG/(MU_64F)count;
+
+		//MU_DBG("ssimR = %f ssimB = %f ssimG = %f\n", ssimR, ssimB, ssimG);	
+		*ssim = ((ssimR+ssimB+ssimG)/(MU_64F)3.0);
+
+		muReleaseImage(&r1);
+		muReleaseImage(&b1);
+		muReleaseImage(&g1);
+		muReleaseImage(&r2);
+		muReleaseImage(&b2);
+		muReleaseImage(&g2);
+	}
+
+	return;
+}
