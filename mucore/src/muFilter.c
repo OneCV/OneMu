@@ -34,8 +34,106 @@
 
 #include "muCore.h"
 
-/* Convolves the image with the 3*3 kernel and
-   border effect will be handle by specified type (MU_BORDER_*) */
+/*===========================================================================================*/
+/*   muFilter55                                                                              */
+/*                                                                                           */
+/*   DESCRIPTION:                                                                            */
+/*   This routine performs a 5x5 filter convolution.                                         */
+/*                                                                                           */
+/*                                                                                           */
+/*   NOTE                                                                                    */
+/*                                                                                           */
+/*   USAGE                                                                                   */
+/*   muImage_t *src --> input image                                                          */
+/*   muImage_t *dst --> output image                                                         */
+/*   selection 1~2, two difference masks are able to use                                     */
+/*   kernel is stucture element                                                              */
+/*   norm is sum of all the kernel value                                                     */
+/*===========================================================================================*/
+muError_t muFilter55( const muImage_t* src, muImage_t* dst, const MU_8S kernel[], const MU_8U norm)
+{
+	MU_32S i, j, temp;
+	MU_32S width, height;
+	muError_t ret;
+	MU_8U* in, *out; 
+
+	ret = muCheckDepth(4, src, MU_IMG_DEPTH_8U, dst, MU_IMG_DEPTH_8U);
+	if(ret)
+	{
+		return ret;
+	}
+
+	if(src->channels != 1 || dst->channels != 1)
+	{
+		return MU_ERR_NOT_SUPPORT;
+	}
+
+	in = src->imagedata;
+	out = dst->imagedata;
+
+	width = src->width;
+	height = src->height;
+	
+	for(i=0; i<height-4; i++)
+	{
+		for(j=0; j<width-4; j++)
+		{
+			temp = 0;
+			//Row1
+			temp += in[j+width*i]*kernel[0]; 
+			temp += in[j+1+width*i]*kernel[1]; 
+			temp += in[j+2+width*i]*kernel[2]; 
+			temp += in[j+3+width*i]*kernel[3]; 
+			temp += in[j+4+width*i]*kernel[4];
+			//Row2
+			temp += in[j+width*(i+1)]*kernel[5]; 
+			temp += in[j+1+width*(i+1)]*kernel[6]; 
+			temp += in[j+2+width*(i+1)]*kernel[7]; 
+			temp += in[j+3+width*(i+1)]*kernel[8]; 
+			temp += in[j+4+width*(i+1)]*kernel[9];
+			//Row3
+			temp += in[j+width*(i+2)]*kernel[10]; 
+			temp += in[j+1+width*(i+2)]*kernel[11]; 
+			temp += in[j+2+width*(i+2)]*kernel[12]; 
+			temp += in[j+3+width*(i+2)]*kernel[13]; 
+			temp += in[j+4+width*(i+2)]*kernel[14];
+			//Row4
+			temp += in[j+width*(i+3)]*kernel[15]; 
+			temp += in[j+1+width*(i+3)]*kernel[16]; 
+			temp += in[j+2+width*(i+3)]*kernel[17]; 
+			temp += in[j+3+width*(i+3)]*kernel[18]; 
+			temp += in[j+4+width*(i+3)]*kernel[19];
+			//Row5
+			temp += in[j+width*(i+4)]*kernel[20]; 
+			temp += in[j+1+width*(i+4)]*kernel[21]; 
+			temp += in[j+2+width*(i+4)]*kernel[22]; 
+			temp += in[j+3+width*(i+4)]*kernel[23]; 
+			temp += in[j+4+width*(i+4)]*kernel[24];
+
+			out[j+2+width*(i+2)] = (MU_8U)(temp/(MU_32F)norm);
+		}
+	}
+
+	return MU_ERR_SUCCESS;
+}
+
+
+/*===========================================================================================*/
+/*   muFilter33                                                                              */
+/*                                                                                           */
+/*   DESCRIPTION:                                                                            */
+/*   This routine performs a 3x3 filter convolution.                                         */
+/*                                                                                           */
+/*                                                                                           */
+/*   NOTE                                                                                    */
+/*                                                                                           */
+/*   USAGE                                                                                   */
+/*   muImage_t *src --> input image                                                          */
+/*   muImage_t *dst --> output image                                                         */
+/*   selection 1~2, two difference masks are able to use                                     */
+/*   kernel is stucture element                                                              */
+/*   norm is sum of all the kernel value                                                     */
+/*===========================================================================================*/
 muError_t muFilter33( const muImage_t* src, muImage_t* dst, const MU_8S kernel[], const MU_8U norm)
 {
 	MU_32S i, j, temp;
@@ -68,7 +166,7 @@ muError_t muFilter33( const muImage_t* src, muImage_t* dst, const MU_8S kernel[]
 			temp += (src->imagedata[(i+1)*src->width+(j+0)]*kernel[7]);
 			temp += (src->imagedata[(i+1)*src->width+(j+1)]*kernel[8]);
 
-			dst->imagedata[i*src->width+j] = temp>>norm;
+			dst->imagedata[i*src->width+j] = temp/(MU_32F)norm;
 		}
 	}
 

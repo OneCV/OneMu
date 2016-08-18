@@ -113,7 +113,7 @@ typedef struct _muSepImage_t
 /*                                                                                           */
 /*   DESCRIPTION:                                                                            */
 /*   This routine divide the semi-planer data structure into 3 components.                   */
-/*	 code:1->yuv422 2->RGB																	 */
+/*	 code:1->yuv422 2->RGB 3->yuv420														 */
 /*                                                                                           */
 /*===========================================================================================*/
 
@@ -136,6 +136,12 @@ static muError_t muSeparateChannel(const muImage_t *src, muSepImage_t *dst, MU_3
 		dst->cha  = src->imagedata;
 		dst->chb  = src->imagedata + (src->width * src->height);
 		dst->chc  = src->imagedata + (src->width * src->height) + (src->width*src->height);
+		break;
+	
+		case 3:
+		dst->cha  = src->imagedata;
+		dst->chb  = src->imagedata + (src->width * src->height);
+		dst->chc  = src->imagedata + (src->width * src->height) + (src->width*src->height)/4;
 		break;
 
 		default:
@@ -183,6 +189,96 @@ static muError_t muYUV422p2sp(muImage_t *src)
 	return MU_ERR_SUCCESS;
 }
 
+/*===========================================================================================*/
+/*   muYUV420toRGB                                                                          */
+/*                                                                                           */
+/*   DESCRIPTION:                                                                            */
+/*                                                                                           */
+/*   NOTE                                                                                    */
+/*   This routine would be modified the original data.                                       */
+/*                                                                                           */
+/*   USAGE                                                                                   */
+/*   muImage_t *src --> input image                                                           */
+/*===========================================================================================*/
+muError_t muYUV420toRGB(const muImage_t *src, muImage_t *dst)
+{
+	MU_8U *data;
+	MU_32S u,v;
+	MU_32S i,j,k;
+	MU_32S rdif,gdif,bdif;
+	MU_32S r,g,b;
+	MU_32S width, height, channels;
+	muSepImage_t ssrc;
+	muError_t ret;
+
+	ret = muCheckDepth(4, src, MU_IMG_DEPTH_8U, dst, MU_IMG_DEPTH_8U);
+	if(ret)
+	{
+		return ret;
+	}
+
+	if(src->channels != 3 || dst->channels != 3)
+	{
+		return MU_ERR_NOT_SUPPORT;
+	}
+
+	channels = dst->channels;
+
+	ssrc.width = src->width;
+	ssrc.height = src->height; 
+
+	width = src->width;
+	height = src->height;
+
+	muSeparateChannel(src, &ssrc, 3);
+	
+	data = dst->imagedata;
+
+	k=0;
+	for(j=0; j<height; j++)
+		for(i=0; i<width; i++)
+		{
+
+			u = ssrc.chb[(j/2)*(width/2)+(i/2)]-128;
+			v = ssrc.chc[(j/2)*(width/2)+(i/2)]-128;
+
+			rdif = v + ((v*103) >> 8);
+			gdif = ((u*88)>>8)+((v*183)>>8);
+			bdif = u+((u*198)>>8);
+
+
+			r = ssrc.cha[i+width*j] + rdif;
+			//r = ssrc.cha[i] + 1.4075*(ssrc.chc[j]-128);
+			if(r > 255)
+				r=255;
+			if(r < 0)
+				r=0;
+
+			g = ssrc.cha[i+width*j] - gdif;
+			//g = ssrc.cha[i] - 0.3455*(ssrc.chb[j]-128) - (ssrc.chc[j]-128);
+			if(g > 255)
+				g = 255;
+			if(g < 0)
+				g = 0;
+
+			b = ssrc.cha[i+width*j] + bdif;
+			//b = ssrc.cha[i] + 1.7790*(ssrc.chb[j]-128);
+			if(b > 255)
+				b = 255;
+			if(b < 0)
+				b = 0;
+
+			//printf("r = %d g= %d b = %d\n", r, g, b);
+
+			data[k*3] = b;
+			data[k*3+1] = g;
+			data[k*3+2] = r;
+			k++;
+		}
+
+	return MU_ERR_SUCCESS;
+
+}
 
 /*===========================================================================================*/
 /*   muYUV422toRGB                                                                          */
@@ -475,3 +571,141 @@ muError_t muGraytoRGBA(const muImage_t *src, muImage_t *dst)
 
 }
 
+
+/*===========================================================================================*/
+/*   muRGBtoXYZ                                                                              */
+/*                                                                                           */
+/*   DESCRIPTION:                                                                            */
+/*                                                                                           */
+/*   NOTE                                                                                    */
+/*   reference: http://www.easyrgb.com                                                       */
+/*                                                                                           */
+/*   USAGE                                                                                   */
+/*   muImage_t *src --> input image                                                          */
+/*===========================================================================================*/
+
+muError_t muRGB2XYZ(const muImage_t *src, muImage_t *dst)
+{
+	MU_16U y;
+	MU_32S i, x;
+	MU_32S width, height;
+	MU_32F r,g,b;
+	MU_8U *in, *out;
+	MU_32F *data;
+	muError_t ret;
+
+	ret = muCheckDepth(4, src, MU_IMG_DEPTH_8U, dst, MU_IMG_DEPTH_8U);
+	if(ret)
+	{
+		return ret;
+	}
+
+	if(src->channels != 3 || dst->channels != 3)
+	{
+		return MU_ERR_NOT_SUPPORT;
+	}
+
+	width = src->width;
+	height = src->height;
+	in = (MU_8U *)src->imagedata;
+	data = (MU_32F *)dst->imagedata;
+
+	for(i=0; i<width*height; i++)
+	{
+		// gamma correction
+		b = ((MU_32F)in[i*3]/(MU_32F)255);
+		g = ((MU_32F)in[i*3+1]/(MU_32F)255);
+		r = ((MU_32F)in[i*3+2]/(MU_32F)255);
+			
+		if(r > 0.04045)
+			r = pow(((r+0.055)/(MU_32F)1.055), 2.4F);
+		else
+			r = (r/(MU_32F)12.92);
+
+		if(g > 0.04045)
+			g = pow(((g+0.055)/(MU_32F)1.055), 2.4F);
+		else
+			g = (g/(MU_32F)12.92);
+
+		if(b > 0.04045)
+			b = pow(((b+0.055)/(MU_32F)1.055), 2.4F);
+		else
+			b = (b/(MU_32F)12.92);
+
+		r = r*100; g = g*100; b = b*100;
+		
+		data[i*3] = (r * 0.4124F) + (g * 0.3576F) + (b * 0.1805F); //X
+		data[i*3+1] = (r * 0.2126F) + (g * 0.7152F) + (b * 0.0722F); //Y
+		data[i*3+2] = (r * 0.0193F) + (g * 0.1192F) + (b * 0.9505F); //Z
+
+	}
+
+	return MU_ERR_SUCCESS;
+}
+
+/*===========================================================================================*/
+/*   muXYZtoLab                                                                              */
+/*                                                                                           */
+/*   DESCRIPTION:                                                                            */
+/*                                                                                           */
+/*   NOTE                                                                                    */
+/*   reference: http://www.easyrgb.com                                                       */
+/*                                                                                           */
+/*   USAGE                                                                                   */
+/*   muImage_t *src --> input image                                                          */
+/*===========================================================================================*/
+
+muError_t muXYZ2LAB(const muImage_t *src, muImage_t *dst)
+{
+	MU_32S i;
+	MU_32S width, height;
+	MU_32F x,y,z;
+	MU_32F *in;
+	MU_32F *data;
+	muError_t ret;
+
+	ret = muCheckDepth(4, src, MU_IMG_DEPTH_8U, dst, MU_IMG_DEPTH_8U);
+	if(ret)
+	{
+		return ret;
+	}
+
+	if(src->channels != 3 || dst->channels != 3)
+	{
+		return MU_ERR_NOT_SUPPORT;
+	}
+
+	width = src->width;
+	height = src->height;
+	
+	in = (MU_32F*)src->imagedata;
+	data = (MU_32F*)dst->imagedata;
+	
+	for(i=0; i<width*height; i++)
+	{
+		x = ((MU_32F)in[i*3]/(MU_32F)95.047F);
+		y = ((MU_32F)in[i*3+1]/(MU_32F)100.0F);
+		z = ((MU_32F)in[i*3+2]/(MU_32F)108.883F);
+
+		if(x > 0.008856)
+			x = pow(x, (0.3333F));
+		else
+			x = (7.787*x) + (16/(MU_32F)116.0F);
+
+		if(y > 0.008856)
+			y = pow(y, (0.3333F));
+		else
+			y = (7.787*y) + (16/(MU_32F)116.0F);
+
+		if(z > 0.008856)
+			z = pow(z, (0.3333F));
+		else
+			z = (7.787*z) + (16/(MU_32F)116.0F);
+
+		data[i*3]   = (116.0F*y) - 16.0F; //L*
+		data[i*3+1] = 500.0F * (x-y); //a*
+		data[i*3+2] = 200.0F * (y-z); //b*
+	}
+
+	return MU_ERR_SUCCESS;
+}

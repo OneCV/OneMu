@@ -1059,6 +1059,51 @@ muError_t muRemoveSubImage(muImage_t *src, const muRect_t rect, const MU_32S rep
 
 	return MU_ERR_SUCCESS;
 }
+
+/****************************************************************************************\
+ *          get sub RGB image to dst                                                          *
+ \****************************************************************************************/
+muError_t muGetRGBImage(const muImage_t *src, muImage_t *dst, const muRect_t rect)
+{
+	MU_32S a,b,x,y;
+	MU_32S width;
+	MU_8U *in, *out;
+	muError_t ret;
+
+	ret = muCheckDepth(4, src, MU_IMG_DEPTH_8U, dst, MU_IMG_DEPTH_8U);
+	if(ret)
+	{
+		return ret;
+	}
+
+	if(src->channels != 3 || dst->channels != 3)
+	{
+		return MU_ERR_NOT_SUPPORT;
+	}
+
+	width = src->width;
+	in = src->imagedata;
+	out = dst->imagedata;
+
+	for(b=0,y=rect.y;b<rect.height;y++,b++)
+	{
+		for(a=0,x=rect.x;a<rect.width*3;x++,a+=3)	
+		{
+			out[(x-rect.x)*3+(rect.width*3)*(y-rect.y)] = in[x*3+(width*3)*y]; //B
+			out[(x-rect.x)*3+(rect.width*3)*(y-rect.y)+1] = in[x*3+(width*3)*y+1]; //G
+			out[(x-rect.x)*3+(rect.width*3)*(y-rect.y)+2] = in[x*3+(width*3)*y+2]; //R
+
+		}
+	}
+
+	return MU_ERR_SUCCESS;
+}
+
+
+
+
+
+
 /* Return the particular element of image (idx0:height, idx1:width, idx2:channel) */
 /* The functions return 0 if the requested node does not exist */
 MU_32S muGet2D(const muImage_t *image, MU_32S idx0, MU_32S idx1)
