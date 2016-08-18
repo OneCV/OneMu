@@ -13,6 +13,7 @@ SET(OneMu_SRCS
  src/muMorphological.c
  src/muMotion.c
  src/muThreshold.c
+ src/muMatching.c
 )
 
 if (WIN32 OR UNIX)

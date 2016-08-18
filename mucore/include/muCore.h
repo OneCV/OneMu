@@ -48,16 +48,16 @@
 /* Calculates an image derivative using generalized Sobel
    (aperture_size = 1,3,5,7) or Scharr (aperture_size = -1) operator.
    Scharr can be used only for the first dx or dy derivative */
-MU_API(muError_t)  muSobel( const muImage_t* src, muImage_t* dst);
+MU_API(muError_t) muSobel( const muImage_t* src, muImage_t* dst);
 
 /* Calculates the image Laplacian: (d2/dx + d2/dy)I */
-MU_API(muError_t)  muLaplace( const muImage_t* src, muImage_t* dst, MU_8U selection);
+MU_API(muError_t) muLaplace( const muImage_t* src, muImage_t* dst, MU_8U selection);
 
 /* Edge detection by Prewitt operator */
 MU_API(muError_t) muPrewitt( const muImage_t* src, muImage_t* dst);
 
 /* Canny edge detection*/
-MU_API(muError_t) muCanny( const muImage_t* src, muImage_t* dst, muImage_t *ang);
+MU_API(muError_t) muCannyEdge(const muImage_t *src, muImage_t *dst, muDoubleThreshold_t th);
 
 /* Edge-based no reference blur metric */
 MU_API(muError_t) muNoRefBlurMetric(muImage_t *src, MU_32S *bm);
@@ -92,7 +92,9 @@ MU_API(muError_t) muDownScaleMemcpy420( const muImage_t* src, muImage_t* dst, MU
 #define MU_BORDER_CONSTANT  1 // border is filled with the fixed value, passed as last parameter of the function.
 #define MU_BORDER_REPLICATE 2 // the pixels from the top and bottom rows, the left-most and right-most columns are replicated to fill the border.
 
-/* Convolves the image with the 3*3 kernel and */
+/* Convolves the image with the 5*5 kernelv*/
+MU_API(muError_t) muFilter55( const muImage_t* src, muImage_t* dst, const MU_8S kernel[], const MU_8U norm);
+/* Convolves the image with the 3*3 kernel */
 MU_API(muError_t) muFilter33( const muImage_t* src, muImage_t* dst, const MU_8S kernel[], const MU_8U norm);
 
 /* 3x3 median filter by bubble sort */
@@ -127,13 +129,17 @@ MU_API(muError_t) muRGB2Hue(const muImage_t * src, muImage_t * dst);
 /* This routine transform the gray to RGBA plane to the Hue plane. */
 MU_API(muError_t) muGraytoRGBA(const muImage_t *src, muImage_t *dst);
 
+/* This routine transform the RGB to XYZ plane. */
+MU_API(muError_t) muRGB2XYZ(const muImage_t *src, muImage_t *dst);
+
+/* This routine transform the RGB to XYZ plane. */
+MU_API(muError_t) muXYZ2LAB(const muImage_t *src, muImage_t *dst);
 
 /********* Image Segmentation, Connected Components and Contour Retrieval ***************/
 
 /* Retrieves bounding boxes of white (non-zero) connected
    components in the black (zero) background */
 MU_API(muError_t) mu4ConnectedComponent8u(muImage_t * src, muImage_t * dst, MU_8U *numlabel);
-
 
 /* ?? */
 MU_API(muSeq_t*) muFindBoundingBox(const muImage_t * image, MU_8U numlabel,  muDoubleThreshold_t th);

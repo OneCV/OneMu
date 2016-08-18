@@ -61,13 +61,17 @@ MU_API(muSize_t)  muGetSize( const muImage_t* image );
 //MU_API(EcvResolution)  muGetResolution( const muImage_t* image );
 
 /* Clears all the image array elements (sets them to 0) */
-MU_API(muError_t)  muSetZero( muImage_t* image );
+MU_API(muError_t) muSetZero( muImage_t* image );
 
 /* Get the sub image to dst */
-MU_API(muError_t)  muGetSubImage(const muImage_t *src, muImage_t *dst, const muRect_t rect);
+MU_API(muError_t) muGetSubImage(const muImage_t *src, muImage_t *dst, const muRect_t rect);
+
+/* Get the RGB image to dst */
+MU_API(muError_t) muGetRGBImage(const muImage_t *src, muImage_t *dst, const muRect_t rect);
 
 /* Remove the sub image from src */
-muError_t muRemoveSubImage(muImage_t *src, const muRect_t rect, const MU_32S replaceVal);
+MU_API(muError_t) muRemoveSubImage(muImage_t *src, const muRect_t rect, const MU_32S replaceVal);
+
 /* Get the sub image to dst YUV422*/
 MU_API(muError_t)  muGetSubYUV422Image(const muImage_t *src, muImage_t *dst, const muRect_t rect);
 
@@ -111,18 +115,14 @@ MU_API(muSeqBlock_t*) muPushSeqFront(muSeq_t *seq, MU_VOID* element);
 /* dynamic structure, get element by index */
 MU_API(MU_VOID*) muGetSeqElement(muSeq_t **seq, MU_32S index);
 
-
 /**********************************************\
 *          Loading and Saving Images           *
 \**********************************************/
-
 /* load bmp */
 MU_API(muImage_t*) muLoadBMP(const char *filename);
 
 /* save bmp */
 MU_API(muError_t) muSaveBMP(const char *filename, muImage_t *image);
-
-
 
 #endif /* _MU_BASE_H_ */
 

@@ -35,17 +35,17 @@
 #include "muCore.h"
 
 /*===========================================================================================*/
-/*   muLaplace                                                                              */
+/*   muLaplace                                                                               */
 /*                                                                                           */
 /*   DESCRIPTION:                                                                            */
 /*   This routine performs a edge detection by Laplace operator.                             */
-/*                                                                                           */   
+/*                                                                                           */
 /*                                                                                           */
 /*   NOTE                                                                                    */
 /*                                                                                           */
 /*   USAGE                                                                                   */
-/*   muImage_t *src --> input image                                                           */
-/*   muImage_t *dst --> output image                                                          */
+/*   muImage_t *src --> input image                                                          */
+/*   muImage_t *dst --> output image                                                         */
 /*   selection 1~2, two difference masks are able to use                                     */
 // 1 = 0, 1, 0,      2 = 1, 1, 1,                                                            */
 //     1,-4, 1,          1,-8, 1,                                                            */
@@ -114,7 +114,7 @@ muError_t muLaplace( const muImage_t* src, muImage_t* dst, MU_8U selection)
 
 
 /*===========================================================================================*/
-/*   muSobel                                                                                */
+/*   muSobel                                                                                 */
 /*                                                                                           */
 /*   DESCRIPTION:                                                                            */
 /*   This routine performs a edge detection by Sobel operator.                               */
@@ -126,8 +126,8 @@ muError_t muLaplace( const muImage_t* src, muImage_t* dst, MU_8U selection)
 /*   NOTE                                                                                    */
 /*                                                                                           */
 /*   USAGE                                                                                   */
-/*   muImage_t *src --> input image                                                           */
-/*   muImage_t *dst --> output image                                                          */
+/*   muImage_t *src --> input image                                                          */
+/*   muImage_t *dst --> output image                                                         */
 /*                                                                                           */
 /*===========================================================================================*/
 muError_t muSobel( const muImage_t* src, muImage_t* dst)
@@ -182,7 +182,7 @@ muError_t muSobel( const muImage_t* src, muImage_t* dst)
 
 
 /*===========================================================================================*/
-/*   muPrewitt                                                                              */
+/*   muPrewitt                                                                               */
 /*                                                                                           */
 /*   DESCRIPTION:                                                                            */
 /*   This routine performs a edge detection by Prewitt operator.                             */
@@ -194,8 +194,8 @@ muError_t muSobel( const muImage_t* src, muImage_t* dst)
 /*   NOTE                                                                                    */
 /*                                                                                           */
 /*   USAGE                                                                                   */
-/*   muImage_t *src --> input image                                                           */
-/*   muImage_t *dst --> output image                                                          */
+/*   muImage_t *src --> input image                                                          */
+/*   muImage_t *dst --> output image                                                         */
 /*                                                                                           */
 /*===========================================================================================*/
 muError_t muPrewitt( const muImage_t* src, muImage_t* dst)
@@ -458,3 +458,333 @@ muError_t muNoRefBlurMetric(muImage_t *src, MU_32S *bm)
 	muReleaseImage(&gray);
 	muReleaseImage(&edgeImg);
 }
+
+
+#define NOEDGE        0
+#define EDGECANDIDATE 128
+#define EDGE          255
+static muError_t nonMaxSuppress(const muImage_t *magImg, muImage_t *dirImg, muImage_t *cannyImg, muDoubleThreshold_t th, MU_32S offset)
+{
+
+	MU_32S i, j, temp;
+	MU_32S width, height;
+	muSize_t size;
+	muError_t ret;
+	muImage_t *tempImg;
+	MU_16S *mag, magData[9], magTemp;
+	MU_8U *out, *dir, dirTemp, *tmp, mgTemp[9]; 
+	MU_16S leftPix, rightPix;
+
+	ret = muCheckDepth(6, magImg, MU_IMG_DEPTH_16S, dirImg, MU_IMG_DEPTH_8U, cannyImg, MU_IMG_DEPTH_8U);
+	if(ret)
+	{
+		return ret;
+	}
+
+	if(magImg->channels != 1 || dirImg->channels != 1 || cannyImg->channels != 1)
+	{
+		return MU_ERR_NOT_SUPPORT;
+	}
+	
+	size.width = magImg->width;
+	size.height = magImg->height;
+
+	tempImg = muCreateImage(size, MU_IMG_DEPTH_8U, 1);
+	memset(magData, 0, 9*sizeof(MU_16S));
+	memset(mgTemp, 0, 9*sizeof(MU_8U));
+	mag = (MU_16S *)magImg->imagedata;
+	out = (MU_8U *)tempImg->imagedata;
+	dir = (MU_8U *)dirImg->imagedata;
+
+	width = magImg->width;
+	height = magImg->height;
+
+	for(j=offset; j<(height-offset-2); j++)
+		for(i=offset; i<(width-offset-2); i++)
+		{
+			magData[0] = mag[i+width*j];     magData[1] = mag[i+1+width*j];     magData[2] = mag[i+2+width*j];
+			magData[3] = mag[i+width*(j+1)]; magData[4] = mag[i+1+width*(j+1)]; magData[5] = mag[i+2+width*(j+1)];
+			magData[6] = mag[i+width*(j+2)]; magData[7] = mag[i+1+width*(j+2)]; magData[8] = mag[i+2+width*(j+2)];
+
+			dirTemp = dir[i+1+width*(j+1)];
+			magTemp = magData[4];
+
+			if(dirTemp == 0)
+			{
+				leftPix = magData[1]; rightPix = magData[7];
+			}
+			else if(dirTemp == 45)
+			{
+				leftPix = magData[0]; rightPix = magData[8];
+			}
+			else if(dirTemp == 90)
+			{
+				leftPix = magData[3]; rightPix = magData[5];
+			}
+			else
+			{
+				leftPix = magData[2]; rightPix = magData[6];
+			}
+
+			//to place the edge and trace the edge by hysteresis function ;
+			if(magTemp == NOEDGE)
+				out[i+1+width*(j+1)] = NOEDGE;
+			else if(magTemp < leftPix || magTemp < rightPix)
+				out[i+1+width*(j+1)] = NOEDGE;
+			else //maybe edge occur
+			{
+				if(magTemp > th.max )  
+					out[i+1+width*(j+1)] = EDGE;
+				else if(magTemp <= th.max && magTemp >= th.min)
+					out[i+1+width*(j+1)] = EDGECANDIDATE;
+				else
+					out[i+1+width*(j+1)] = NOEDGE;
+			}
+
+		}
+
+	tmp = tempImg->imagedata;
+	out = cannyImg->imagedata;
+	// HysteresisTh
+	offset = offset+1;
+	for(j=offset; j<(height-offset-2); j++)
+		for(i=offset; i<(width-offset-2); i++)
+		{
+			mgTemp[0] = tmp[i+width*j];     mgTemp[1] = tmp[i+1+width*j];     mgTemp[2] = tmp[i+2+width*j];
+			mgTemp[3] = tmp[i+width*(j+1)]; mgTemp[4] = tmp[i+1+width*(j+1)]; mgTemp[5] = tmp[i+2+width*(j+1)];
+			mgTemp[6] = tmp[i+width*(j+2)]; mgTemp[7] = tmp[i+1+width*(j+2)]; mgTemp[8] = tmp[i+2+width*(j+2)];
+
+			if(mgTemp[4] == EDGE)
+			{
+				//Row1
+				if(mgTemp[0]==EDGECANDIDATE){tmp[i+width*j] = EDGE;out[i+width*j] = EDGE;}
+				if(mgTemp[1]==EDGECANDIDATE){tmp[i+1+width*j] = EDGE;out[i+1+width*j] = EDGE;}
+				if(mgTemp[2]==EDGECANDIDATE){tmp[i+2+width*j] = EDGE;out[i+2+width*j] = EDGE;}
+				//Row2
+				if(mgTemp[3]==EDGECANDIDATE){tmp[i+width*(j+1)] = EDGE;out[i+width*(j+1)] = EDGE;}
+				if(mgTemp[5]==EDGECANDIDATE){tmp[i+2+width*(j+1)] = EDGE;out[i+2+width*(j+1)] = EDGE;}
+				//Row3
+				if(mgTemp[6]==EDGECANDIDATE){tmp[i+width*(j+2)] = EDGE;out[i+width*(j+2)] = EDGE;}
+				if(mgTemp[7]==EDGECANDIDATE){tmp[i+1+width*(j+2)] = EDGE;out[i+1+width*(j+2)] = EDGE;}
+				if(mgTemp[8]==EDGECANDIDATE){tmp[i+2+width*(j+2)] = EDGE;out[i+2+width*(j+2)] = EDGE;}
+
+				out[i+1+width*(j+1)] = EDGE;
+			}
+
+		}
+
+	muReleaseImage(&tempImg);
+
+	return MU_ERR_SUCCESS;
+}
+
+
+static muError_t muFilter16S55( const muImage_t* src, muImage_t* dst, const MU_8S kernel[], const MU_8U norm)
+{
+	MU_32S i, j, temp;
+	MU_32S width, height;
+	muError_t ret;
+	MU_8U *in;
+	MU_16S *out;
+
+	ret = muCheckDepth(4, src, MU_IMG_DEPTH_8U, dst, MU_IMG_DEPTH_16S);
+	if(ret)
+	{
+		return ret;
+	}
+
+	if(src->channels != 1 || dst->channels != 1)
+	{
+		return MU_ERR_NOT_SUPPORT;
+	}
+
+	in = src->imagedata;
+	out = (MU_16S *)dst->imagedata;
+
+	width = src->width;
+	height = src->height;
+	
+	for(i=0; i<height-4; i++)
+	{
+		for(j=0; j<width-4; j++)
+		{
+			temp = 0;
+			//Row1
+			temp += in[j+width*i]*kernel[0]; 
+			temp += in[j+1+width*i]*kernel[1]; 
+			temp += in[j+2+width*i]*kernel[2]; 
+			temp += in[j+3+width*i]*kernel[3]; 
+			temp += in[j+4+width*i]*kernel[4];
+			//Row2
+			temp += in[j+width*(i+1)]*kernel[5]; 
+			temp += in[j+1+width*(i+1)]*kernel[6]; 
+			temp += in[j+2+width*(i+1)]*kernel[7]; 
+			temp += in[j+3+width*(i+1)]*kernel[8]; 
+			temp += in[j+4+width*(i+1)]*kernel[9];
+			//Row3
+			temp += in[j+width*(i+2)]*kernel[10]; 
+			temp += in[j+1+width*(i+2)]*kernel[11]; 
+			temp += in[j+2+width*(i+2)]*kernel[12]; 
+			temp += in[j+3+width*(i+2)]*kernel[13]; 
+			temp += in[j+4+width*(i+2)]*kernel[14];
+			//Row4
+			temp += in[j+width*(i+3)]*kernel[15]; 
+			temp += in[j+1+width*(i+3)]*kernel[16]; 
+			temp += in[j+2+width*(i+3)]*kernel[17]; 
+			temp += in[j+3+width*(i+3)]*kernel[18]; 
+			temp += in[j+4+width*(i+3)]*kernel[19];
+			//Row5
+			temp += in[j+width*(i+4)]*kernel[20]; 
+			temp += in[j+1+width*(i+4)]*kernel[21]; 
+			temp += in[j+2+width*(i+4)]*kernel[22]; 
+			temp += in[j+3+width*(i+4)]*kernel[23]; 
+			temp += in[j+4+width*(i+4)]*kernel[24];
+
+			out[j+2+width*(i+2)] = (temp/(MU_32F)norm);
+		}
+	}
+
+	return MU_ERR_SUCCESS;
+}
+
+muError_t edgeFilter(muImage_t *src, muImage_t *mag, muImage_t *dirImg, const MU_8S kx[], const MU_8S ky[], MU_32S offset)
+{
+	muError_t ret;
+	MU_32S i,j;
+	MU_32S width, height;
+	MU_32S gx, gy, gm;
+	MU_32S tempx, tempy;
+	MU_16S *in, *out;
+	MU_8U *dir, degree;
+	MU_64F degreeTemp;
+	
+	ret = muCheckDepth(6, src, MU_IMG_DEPTH_16S, mag, MU_IMG_DEPTH_16S, dirImg, MU_IMG_DEPTH_8U);
+	if(ret)
+	{
+		return ret;
+	}
+
+	if(src->channels != 1 || mag->channels != 1 || dirImg->channels != 1)
+	{
+		return MU_ERR_NOT_SUPPORT;
+	}
+
+	in = (MU_16S*)src->imagedata;
+	out = (MU_16S*)mag->imagedata;
+	dir = (MU_8U *)dirImg->imagedata;
+
+	width = src->width;
+	height = src->height;
+
+	for(j=offset; j<(height-offset-2); j++)
+		for(i=offset; i<(width-offset-2); i++)
+		{
+			
+			gx =  in[i+width*j]    *kx[0] + in[i+1+width*j]    *kx[1]  + in[i+2+width*j]    *kx[2]
+				 +in[i+width*(j+1)]*kx[3] + in[i+1+width*(j+1)]*kx[4]  + in[i+2+width*(j+1)]*kx[5]
+				 +in[i+width*(j+2)]*kx[6] + in[i+1+width*(j+2)]*kx[7]  + in[i+2+width*(j+2)]*kx[8];
+
+			gy =  in[i+width*j]    *ky[0] + in[i+1+width*j]    *ky[1]  + in[i+2+width*j]    *ky[2]
+				 +in[i+width*(j+1)]*ky[3] + in[i+1+width*(j+1)]*ky[4]  + in[i+2+width*(j+1)]*ky[5]
+				 +in[i+width*(j+2)]*ky[6] + in[i+1+width*(j+2)]*ky[7]  + in[i+2+width*(j+2)]*ky[8];
+			
+			gm = abs(gx)+abs(gy);
+
+			if(gx == 0)
+   	       	{
+              if(gy == 0)
+              {
+              	degree = 0;
+              	degreeTemp = 0;
+              }          
+              else
+              {
+              	degree = 90;
+              	degreeTemp = 90;
+              }              
+           	}
+           	else
+           	{
+            	
+				degreeTemp = atan2(gy, gx)*180/MU_PI;
+				if (((degreeTemp < 22.5) && (degreeTemp > -22.5)) || (degreeTemp > 157.5) || (degreeTemp < -157.5))
+					degreeTemp = 0;
+				if (((degreeTemp > 22.5) && (degreeTemp < 67.5)) || ( (degreeTemp < -112.5) && (degreeTemp > -157.5)))
+					degreeTemp = 45;
+				if (((degreeTemp > 67.5) && (degreeTemp < 112.5)) || ( (degreeTemp < -67.5) && (degreeTemp > -112.5)))
+					degreeTemp = 90;
+				if (((degreeTemp > 112.5) && (degreeTemp < 157.5)) || ( (degreeTemp < -22.5) && (degreeTemp > -67.5)))
+					degreeTemp = 135;
+				//LUT include atan.h
+				//tempx = abs(gx); tempy = abs(gy);
+            	//degree = atantbl[tempy][tempx];
+				//printf("tbl:%d atan2:%f \n", degree, degreeTemp);
+              	//if(((gx<0 && gy> 0)||(gx > 0 && gy < 0))&&(degree==45))
+              	//	degree = 135;
+           	}
+
+           	dir[i+1+width*(j+1)] = degreeTemp;
+           	out[i+1+width*(j+1)] = gm;	
+		}
+}
+
+
+
+/*===========================================================================================*/
+/*   muCannyEdge																             */
+/*                                                                                           */
+/*   DESCRIPTION:                                                                            */
+/*   https://en.wikipedia.org/wiki/Canny_edge_detector                                       */
+/*   http://www.pages.drexel.edu/~nk752/cannyTut2.html                                       */
+/*                                                                                           */
+/*   NOTE                                                                                    */
+/*   double threshold could be using other methodology to find                               */
+/*                                                                                           */
+/*   USAGE                                                                                   */
+/*   muImage_t *src --> input image                                                          */
+/*   *dst --> canny img                                                                      */
+/*   th --> hysterisis thresholding                                                          */
+/*===========================================================================================*/
+muError_t muCannyEdge(const muImage_t *src, muImage_t *dst, muDoubleThreshold_t th)
+{
+	muError_t ret;
+	muImage_t *gausImg, *magImg, *dirImg;
+	muSize_t size;
+
+	MU_8U kernel[25] = {2,4,5,4,2,4,9,12,9,4,5,12,15,12,5,4,9,12,9,4,2,4,5,4,2};
+	MU_8S gx[9] = {-1,-1,-1,0,0,0,1,1,1};
+	MU_8S gy[9] = {-1,0,1,-1,0,1,-1,0,1};
+
+	ret = muCheckDepth(4, src, MU_IMG_DEPTH_8U, dst, MU_IMG_DEPTH_8U);
+	if(ret)
+	{
+		return ret;
+	}
+
+	if(src->channels != 1 || dst->channels != 1)
+	{
+		return MU_ERR_NOT_SUPPORT;
+	}
+
+	size.width = src->width;
+	size.height = src->height;
+
+	gausImg = muCreateImage(size, MU_IMG_DEPTH_16S, 1);
+	magImg = muCreateImage(size, MU_IMG_DEPTH_16S, 1);
+	dirImg = muCreateImage(size, MU_IMG_DEPTH_8U, 1);
+
+	muSetZero(gausImg);
+	muSetZero(magImg);
+	muSetZero(gausImg);
+
+	muFilter16S55(src, gausImg, kernel, 159);
+	edgeFilter(gausImg, magImg, dirImg, gx, gy, 2);
+	nonMaxSuppress(magImg, dirImg, dst, th, 3);
+	
+	muReleaseImage(&gausImg);
+	muReleaseImage(&magImg);
+	muReleaseImage(&dirImg);
+
+	return MU_ERR_SUCCESS;
+}
+
