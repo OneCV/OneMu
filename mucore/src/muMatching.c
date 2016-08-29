@@ -450,3 +450,128 @@ muError_t muSSIM(const muImage_t *src1, const muImage_t *src2, MU_64F *ssim)
 
 	return;
 }
+
+
+/*===========================================================================================*/
+/*   exhaustiveMatching                                                                      */
+/*                                                                                           */
+/*   DESCRIPTION:                                                                            */
+/*   This routine performs a edge detection by Laplace operator.                             */
+/*                                                                                           */
+/*                                                                                           */
+/*   NOTE                                                                                    */
+/*                                                                                           */
+/*   USAGE                                                                                   */
+/*   gold -> interesting image u want to find from test image                                */
+/*   test -> test image                                                                      */
+/*   stPoint -> Searching start point                                                        */
+/*   endPoint -> Searching end point                                                         */
+/*   alg -> support ncc and ssim                                                             */
+/*   out -> return the most similar axis of start point and similar data                     */
+/*===========================================================================================*/
+typedef muError_t(*matchAlg)(const muImage_t *, const muImage_t *, MU_64F *);
+
+muError_t exhaustiveMatching(muImage_t *gold, muImage_t *test, muPoint_t stPoint, muPoint_t endPoint, MU_8S *alg, muSearchMatching_t *out)
+{
+	muError_t ret;
+	muError_t opRet;
+	time_t begin, end;
+	matchAlg op;
+	MU_32S i,j, tempX, tempY, maxX, maxY;
+	MU_32S count, tArea, refineX, refineY;
+	muSize_t gSize, tSize;
+	MU_8U *gImg, *tImg;
+	muImage_t *gTemp, *tTemp;
+	MU_64F data, dataTemp = 0;
+	muRect_t rect;
+	char* nameBuf[128];
+	FILE *img;
+
+	memset(nameBuf, 0, 128*sizeof(char));
+	ret = muCheckDepth(4, gold, MU_IMG_DEPTH_8U, test, MU_IMG_DEPTH_8U);
+	if(ret)
+	{
+		return ret;
+	}
+
+	if(gold->channels != 1 || test->channels != 1)
+	{
+		return MU_ERR_NOT_SUPPORT;
+	}
+
+	gSize.width = gold->width;
+	gSize.height = gold->height;
+	tSize.width = test->width;
+	tSize.height = test->height;
+	tempX = stPoint.x;
+	tempY = stPoint.y;
+
+	if((gSize.width*gSize.height) > (tSize.width*tSize.height) ||
+	   (tempX > (tSize.width-1) || (tempY) > (tSize.height-1)) ||
+	   (endPoint.x < tempX) || (endPoint.y < tempY))
+	{
+		MU_DBG("golden image size or start/end point cannot larger/smaller than searched image\n");
+		return MU_ERR_INVALID_PARAMETER;
+	}
+
+	if((endPoint.x-stPoint.x) < gold->width)
+	{
+		MU_DBG("search size must larger than gold image size\n");
+		return MU_ERR_INVALID_PARAMETER;
+	}
+
+	if((endPoint.y-stPoint.y) < gold->height)
+	{
+		MU_DBG("search size must larger than gold image size\n");
+		return MU_ERR_INVALID_PARAMETER;
+	}
+
+
+	if(!strcmp(alg, "ncc"))
+	{
+		op = muNCC;
+	}
+	else if(!strcmp(alg, "ssim"))
+	{
+		op = muSSIM;
+	}
+
+	gImg = (MU_8U *)gold->imagedata;
+	tImg = (MU_8U *)test->imagedata;
+	gTemp = muCreateImageHeader(gSize, MU_IMG_DEPTH_8U, 1);
+	gTemp->imagedata = gImg;
+	count = 0;
+	
+	if(endPoint.x == 0)
+		endPoint.x = tSize.width-1;
+	if(endPoint.y == 0)
+		endPoint.y = tSize.height-1;
+
+	refineY = stPoint.y+(endPoint.y-stPoint.y)-gSize.height+1;
+	refineX = stPoint.x+(endPoint.x-stPoint.x)-gSize.width+1;
+
+	for(j=stPoint.y; j<refineY; j++)
+		for(i=stPoint.x; i<refineX; i++)
+		{
+			tTemp = muCreateImage(gSize, MU_IMG_DEPTH_8U, 1);
+			rect.x = i; rect.width = gSize.width;
+			rect.y = j; rect.height = gSize.height;
+			muGetSubImage(test, tTemp, rect);
+			opRet = op(gTemp, tTemp, &data);
+			if(data > dataTemp)
+			{
+				dataTemp = data;
+				maxX = i;
+				maxY = j;
+			}
+
+			count++;
+			muReleaseImage(&tTemp);
+		}
+
+	out->point.x = maxX;
+	out->point.y = maxY;
+	out->data = dataTemp;
+
+	return MU_ERR_SUCCESS;
+}

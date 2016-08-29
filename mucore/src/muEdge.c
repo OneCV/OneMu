@@ -248,33 +248,6 @@ muError_t muPrewitt( const muImage_t* src, muImage_t* dst)
 	return MU_ERR_SUCCESS;
 }
 
-
-/*===========================================================================================*/
-/*   muCanny TODO																	         */
-/*                                                                                           */
-/*   DESCRIPTION:                                                                            */
-/*   This routine performs a edge detection by Prewitt operator.                             */
-/*                                                                                           */
-/*   NOTE                                                                                    */
-/*                                                                                           */
-/*   USAGE                                                                                   */
-/*   muImage_t *src --> input image                                                          */
-/*   muImage_t *dst --> output image                                                         */
-/*   muImage_t *ang --> direction image                                                      */
-/*===========================================================================================*/
-muError_t muCanny( const muImage_t* src, muImage_t* dst, muImage_t *ang)
-{
-/*
-	if(src->depth != MU_IMG_DEPTH_8U ||
-			dst->depth != MU_IMG_DEPTH_8U) 
-	{
-		return MU_ERR_NOT_SUPPORT; 
-	}
-*/
-	return MU_ERR_SUCCESS;
-}
-
-
 typedef struct _blurInfo
 {
 	MU_32S totalEdge;
