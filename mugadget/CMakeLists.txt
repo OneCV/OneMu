@@ -4,12 +4,6 @@ PROJECT(OneMuGadget)
 SET(OneMuGadget_SRCS
 src/muBackgroundmodeling.c                                              
 src/muCameratampering.c
-src/muPirisanalyze.c
-src/muPtzgettarget.c
-src/muPtztracking.c
-src/muSadtracking.c
-src/muSadtripwirecounting.c
-src/muSadtripzone.c
 src/muObjectdetector.c
 src/muExaminator.c
 )

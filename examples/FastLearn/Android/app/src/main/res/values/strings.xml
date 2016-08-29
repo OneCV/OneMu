@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">oneDetector</string>
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+    <string name="title_activity_login">LoginActivity</string>
+    <string name="title_activity_camera_preview">CameraPreviewActivity</string>
+    <string name="title_activity_menu_list">MenuList</string>
+    <string name="title_activity_menulist">MenulistActivity</string>
+    <string name="title_activity_existing_record">ExistingRecordActivity</string>
+
+</resources>

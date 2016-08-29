@@ -1,0 +1,16 @@
+*.class
+*.txt
+.gradle/2.2.1/taskArtifacts/cache.properties
+*.lock
+*.bin
+*.jar
+*.png
+*.store
+*.iml
+.gradle/
+.idea/
+build/
+gradle/
+app/build/intermediates/
+app/build/generated/
+app/build/tmp/
