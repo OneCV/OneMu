@@ -1,4 +1,3 @@
-
 /*
 % MIT License
 %
@@ -223,6 +222,12 @@ typedef struct _muMSEInfo
   MU_64F norData; // normalized data 0~1
 }muMSEInfo_t;
 
+typedef struct _muSearchMatching
+{
+  muPoint_t point;
+  MU_64F    data;
+}muSearchMatching_t;
+
 /**only support Y data and RGB channel**/
 MU_API (muError_t) muMSE(const muImage_t *src1, const muImage_t *src2, muMSEInfo_t *mseInfo);
 
@@ -237,6 +242,9 @@ MU_API (muError_t) muNCC(const muImage_t *src1, const muImage_t *src2, MU_64F *n
 
 /**only support Y data and RGB channel**/
 MU_API (muError_t) muSSIM(const muImage_t *src1, const muImage_t *src2, MU_64F *ssim);
+
+/** full search find the similar matching **/
+MU_API (muError_t) exhaustiveMatching(muImage_t *gold, muImage_t *test, muPoint_t stPoint, muPoint_t endPoint, MU_8S *alg, muSearchMatching_t *out);
 
 #endif /*_MU_CORE_H_*/
 

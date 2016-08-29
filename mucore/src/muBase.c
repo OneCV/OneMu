@@ -1216,6 +1216,9 @@ MU_VOID muDebugError(muError_t errorcode)
 		case MU_ERR_UNKNOWN :
 			MU_DBG("Unknow error\n");
 			break;
+		case MU_ERR_SUCCESS :
+			MU_DBG("Success\n");
+			break;
 		default :
 			MU_DBG("Error code is no defined\n");
 			break;
