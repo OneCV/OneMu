@@ -6,6 +6,7 @@ src/muBackgroundmodeling.c
 src/muCameratampering.c
 src/muObjectdetector.c
 src/muExaminator.c
+src/muObjectLearning.c
 )
 
 if (WIN32 OR UNIX)
