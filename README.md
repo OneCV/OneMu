@@ -1,8 +1,9 @@
 # OneMu
-**O**pe**N** **EM**bedded **U**nicorn Library
-OneMu is an embedded computer vision framework, which emphasize on real-time vision application.
-It is simple, easy and made by pure C.
-
+One 萬 Mu 目 Computer Vision Library
+萬(One) means ten thousand and a lot.
+目(Mu) means eyes.
+We focus on developing simple and fast vision frameworks especially for real-time vision applications.
+The library is made by pure C and hence easy to be ported into cross-platforms.
 
 # License
 
