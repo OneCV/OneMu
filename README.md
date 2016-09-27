@@ -1,7 +1,7 @@
 # OneMu
-One 萬 Mu 目 Computer Vision Library  
-萬(One) means ten thousand and a lot.  
-目(Mu) means eyes.  
+**One** 萬 **Mu** 目 Computer Vision Library  
+**萬** (One) means ten thousand and a lot.  
+**目** (Mu) means eyes.  
 We focus on developing simple and fast vision frameworks especially for real-time vision applications.  
 The library is made by pure C and hence easy to be ported into cross-platforms.
 
