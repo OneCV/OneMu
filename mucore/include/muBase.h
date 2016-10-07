@@ -87,6 +87,9 @@ MU_API(MU_VOID) muDebugError(muError_t errorcode);
 /* Debug function for error code displaying */
 MU_API(muError_t) muCheckDepth(MU_32S amount, ...);
 
+/*Draw Rectangle*/
+MU_API(muError_t) muRectangle(muImage_t *SrcImg, muPoint_t p1, muPoint_t p2, MU_8S color);
+
 /**********************************************\
 *          Dynamic Structures(Sequence)        *
 \**********************************************/

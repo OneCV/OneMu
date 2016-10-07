@@ -1226,3 +1226,81 @@ MU_VOID muDebugError(muError_t errorcode)
 	}
 
 }
+
+/****************************************************************************************\
+ *          Draw Rectangle function                                                      *
+ \****************************************************************************************/
+/* Draw Rectangle */
+
+muError_t muRectangle(muImage_t *SrcImg, muPoint_t p1, muPoint_t p2, MU_8S color)
+{
+	MU_32S i, j;
+	MU_32S offset, offset2;
+	MU_32S Ch_tmp;
+	MU_32S Ch_width;
+	MU_8U b = 0, g = 0, r = 0;
+
+	Ch_width = SrcImg->width*SrcImg->channels;
+
+	Ch_tmp = p2.x * SrcImg->channels;
+
+	//select color ()
+	switch(color)
+	{
+		case 'r':
+			r=255;
+			break;
+		case 'g':
+			g=255;
+			break;
+		case 'b':
+			b=255;
+			break;
+
+		default:
+			break;
+	}
+	//Draw x axis
+	i = p1.y;
+	j = p1.x * SrcImg->channels;
+
+	while(j<=Ch_tmp)
+	{	//min x axis
+		offset = j+i*Ch_width;
+		SrcImg->imagedata[offset] = b;
+		SrcImg->imagedata[offset+1] = g;
+		SrcImg->imagedata[offset+2] = r;
+
+		//max x axis
+		offset2 = j+p2.x*Ch_width;
+
+		SrcImg->imagedata[offset2] = b;
+		SrcImg->imagedata[offset2+1] = g;
+		SrcImg->imagedata[offset2+2] = r;
+
+		j+=SrcImg->channels;
+	}
+//================================================
+    //Draw y axis
+	i = p1.y;
+	j = p1.x * SrcImg->channels;
+
+	while(i<=p2.y)
+	{	//min y axis
+		offset = j+i*Ch_width;
+		SrcImg->imagedata[offset] = b;
+		SrcImg->imagedata[offset+1] = g;
+		SrcImg->imagedata[offset+2] = r;
+
+		//max y axis
+		offset2 = Ch_tmp+offset-j;
+
+		SrcImg->imagedata[offset2] = b;
+		SrcImg->imagedata[offset2+1] = g;
+		SrcImg->imagedata[offset2+2] = r;
+
+		i++;
+	}
+
+	return MU_ERR_SUCCESS;
+}
