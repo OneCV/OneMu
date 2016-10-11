@@ -1226,3 +1226,106 @@ MU_VOID muDebugError(muError_t errorcode)
 	}
 
 }
+
+/****************************************************************************************\
+ *          Draw Rectangle function                                                      *
+ *			Exampel to use: 															 *
+ *				muError_t ret;															 *
+ *				ret = muDrawRectangle(testImage, p1, p2, 'g');							 *
+ *																						 *
+ *			p1 is the start point (upper left) and p2 is the end point (lower right)	 *
+ \****************************************************************************************/
+/* Draw Rectangle */
+
+muError_t muDrawRectangle(muImage_t *SrcImg, muPoint_t p1, muPoint_t p2, MU_8S color)
+{
+	MU_32S i, j;
+	MU_32S offset, offset2;
+	MU_32S Ch_tmp;
+	MU_32S Ch_width;
+	MU_8U b = 0, g = 0, r = 0;
+	
+	if(SrcImg->channels != 3 || SrcImg->channels != 1)
+	{
+		return MU_ERR_NOT_SUPPORT;
+	}
+	
+	Ch_width = SrcImg->width*SrcImg->channels;
+
+	Ch_tmp = p2.x * SrcImg->channels;
+
+	//select color ()
+	switch(color)
+	{
+		case 'r':
+			r=255;
+			break;
+		case 'g':
+			g=255;
+			break;
+		case 'b':
+			b=255;
+			break;
+
+		default:
+			break;
+	}
+	//Draw x axis
+	i = p1.y;
+	j = p1.x * SrcImg->channels;
+
+	while(j<=Ch_tmp)
+	{	//min x axis
+		offset = j+i*Ch_width;
+		//max x axis
+		offset2 = j+p2.x*Ch_width;
+
+		if(SrcImg->channels == 3)
+		{
+			SrcImg->imagedata[offset] = b;
+			SrcImg->imagedata[offset+1] = g;
+			SrcImg->imagedata[offset+2] = r;
+		
+			SrcImg->imagedata[offset2] = b;
+			SrcImg->imagedata[offset2+1] = g;
+			SrcImg->imagedata[offset2+2] = r;
+		}
+		else if(SrcImg->channels == 1)
+		{
+			SrcImg->imagedata[offset] = 255;
+			SrcImg->imagedata[offset2] = 255;
+		}
+
+		j+=SrcImg->channels;
+	}
+	//================================================
+    //Draw y axis
+	i = p1.y;
+	j = p1.x * SrcImg->channels;
+
+	while(i<=p2.y)
+	{	//min y axis
+		offset = j+i*Ch_width;
+		//max y axis
+		offset2 = Ch_tmp+offset-j;
+
+		if(SrcImg->channels == 3)
+		{
+			SrcImg->imagedata[offset] = b;
+			SrcImg->imagedata[offset+1] = g;
+			SrcImg->imagedata[offset+2] = r;
+
+			SrcImg->imagedata[offset2] = b;
+			SrcImg->imagedata[offset2+1] = g;
+			SrcImg->imagedata[offset2+2] = r;
+		}
+		else if(SrcImg->channels == 1)
+		{
+			SrcImg->imagedata[offset] =255; 
+			SrcImg->imagedata[offset2] = 255;
+		}
+		i++;
+	}
+
+	return MU_ERR_SUCCESS;
+}
