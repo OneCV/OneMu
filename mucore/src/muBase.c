@@ -1229,15 +1229,24 @@ MU_VOID muDebugError(muError_t errorcode)
 
 }
 
+/****************************************************************************************\
+ *          Draw Rectangle function                                                      *
+ *			Exampel to use: 															 *
+ *				muError_t ret;															 *
+ *				ret = muDrawRectangle(testImage, p1, p2, 'g');							 *
+ *																						 *
+ *			p1 is the start point (upper left) and p2 is the end point (lower right)	 *
+ \****************************************************************************************/
+/* Draw Rectangle */
 muError_t muDrawRectangle(muImage_t *SrcImg, muPoint_t p1, muPoint_t p2, MU_8S color)
 {
 	MU_32S i, j;
-	MU_32S offset, offset2, step, step2;
+	MU_32S offset, offset2;
 	MU_32S Ch_tmp;
 	MU_32S Ch_width;
 	MU_8U b = 0, g = 0, r = 0;
 	
-	if(SrcImg->channels != 3 && SrcImg->channels != 1)
+	if(SrcImg->channels != 3 || SrcImg->channels != 1)
 	{
 		return MU_ERR_NOT_SUPPORT;
 	}
@@ -1263,17 +1272,14 @@ muError_t muDrawRectangle(muImage_t *SrcImg, muPoint_t p1, muPoint_t p2, MU_8S c
 			break;
 	}
 	//Draw x axis
+	i = p1.y;
 	j = p1.x * SrcImg->channels;
-
-	step = p1.y*Ch_width;
-	step2 = p2.y*Ch_width;
 
 	while(j<=Ch_tmp)
 	{	//min x axis
-		offset = j+step;
-
+		offset = j+i*Ch_width;
 		//max x axis
-		offset2 = j+step2;
+		offset2 = j+p2.x*Ch_width;
 
 		if(SrcImg->channels == 3)
 		{
@@ -1298,12 +1304,12 @@ muError_t muDrawRectangle(muImage_t *SrcImg, muPoint_t p1, muPoint_t p2, MU_8S c
 	i = p1.y;
 	j = p1.x * SrcImg->channels;
 
-	step = Ch_tmp-j;
-	offset = j+i*Ch_width;
-	offset2 = offset+step;
-
 	while(i<=p2.y)
-	{	
+	{	//min y axis
+		offset = j+i*Ch_width;
+		//max y axis
+		offset2 = Ch_tmp+offset-j;
+
 		if(SrcImg->channels == 3)
 		{
 			SrcImg->imagedata[offset] = b;
@@ -1319,12 +1325,6 @@ muError_t muDrawRectangle(muImage_t *SrcImg, muPoint_t p1, muPoint_t p2, MU_8S c
 			SrcImg->imagedata[offset] =255; 
 			SrcImg->imagedata[offset2] = 255;
 		}
-
-		//min y axis
-		offset += Ch_width;
-		//max y axis
-		offset2 = offset+step;
-
 		i++;
 	}
 
