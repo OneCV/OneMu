@@ -124,5 +124,9 @@ MU_API(muImage_t*) muLoadBMP(const char *filename);
 /* save bmp */
 MU_API(muError_t) muSaveBMP(const char *filename, muImage_t *image);
 
+/* muDrawRectangle */
+MU_API(muError_t) muDrawRectangle(muImage_t *SrcImg, muPoint_t p1, muPoint_t p2, MU_8S color);
+
+
 #endif /* _MU_BASE_H_ */
 
