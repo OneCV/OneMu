@@ -882,6 +882,8 @@ muImage_t * muLoadBMP(const char *filename)
 	muImage_t *image;
 
 	buffer = muReadBMP(filename, &height, &width, &bitcount);
+	if(buffer == NULL)
+		return NULL;
 
 	size.height = height;
 	size.width = width;
@@ -1236,7 +1238,6 @@ MU_VOID muDebugError(muError_t errorcode)
  *			p1 is the start point (upper left) and p2 is the end point (lower right)	 *
  \****************************************************************************************/
 /* Draw Rectangle */
-
 muError_t muDrawRectangle(muImage_t *SrcImg, muPoint_t p1, muPoint_t p2, MU_8S color)
 {
 	MU_32S i, j;
