@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
 				break;
 			case 5:
 				logInfo("muDrawRectangle test\n");
-				status = testDrawRectangle();
+				status = testDrawRectangle(inputFile);
 				if(status)
 				{
 					logInfo("Failed\n");
