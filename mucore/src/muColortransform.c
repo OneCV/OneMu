@@ -520,6 +520,145 @@ muError_t muRGB2Hue(const muImage_t * src, muImage_t * dst)
 
 }
 
+static MU_32S getH(MU_32S r, MU_32S g, MU_32S b, MU_32S min, MU_32S max)
+{
+	MU_32S h = 0;
+
+	if(min == max)
+	{
+		return 0;
+	}
+	else if((max == r) && (g >= b))
+	{
+		h = 60.0 * ((g-b)/(MU_32F)(max-min));
+	}
+	else if((max == r) && (g < b))
+	{
+		h = 60.0 * ((g-b)/(MU_32F)(max-min)) + 360;
+	}
+	else if((max == g))
+	{
+		h = 60.0 * ((b-r)/(MU_32F)(max-min)) + 120;
+	}
+	else if((max == b))
+	{
+		h = 60.0 * ((r-g)/(MU_32F)(max-min)) + 240;
+	}	
+
+	return h;
+}
+
+static MU_32S getS(MU_32S min, MU_32S max)
+{
+	MU_32S s = 0;
+
+	if(max != 0)
+	{
+		s = ((max-min)/(MU_32F)max) * 100;
+	}
+
+	return s;
+}
+
+typedef struct _colorDataInfo
+{
+	MU_32S data1, data2, data3;
+
+}colorDataInfo_t; 
+
+static colorDataInfo_t rgb2hsv(MU_32S r, MU_32S g, MU_32S b, MU_32S min, MU_32S max)
+{
+	colorDataInfo_t hsv;
+
+	//h 0~360
+	hsv.data1 = getH(r, g, b, min, max);
+	//s 0~100
+	hsv.data2 = getS(min, max);
+	//v 0~100
+	hsv.data3 = (MU_32F)(max/(MU_32F)255.0)*100.0;
+	
+	return hsv;
+}
+
+static muError_t muBubbleSort(MU_32S data[], MU_32S length)
+{
+	MU_32S i, j, temp;
+
+	// sort
+	for(j=0; j<length-1; j++)
+		for(i=0; i<length-1-j; i++)
+		{
+			if(data[i] > data[i+1])
+			{
+				temp = data[i];
+				data[i] = data[i+1];
+				data[i+1] = temp; 
+			}
+		}
+
+	
+	return MU_ERR_SUCCESS;
+}
+
+/*===========================================================================================*/
+/*   muRGB2HSV                                                                               */
+/*                                                                                           */
+/*   DESCRIPTION:                                                                            */
+/*                                                                                           */
+/*   NOTE                                                                                    */
+/*   This routine would be modified the original data.                                       */
+/*                                                                                           */
+/*   USAGE                                                                                   */
+/*   muImage_t *src --> input image                                                          */
+/*   muImage_t *hsv --> output image                                                         */
+/*                                                                                           */
+/*	 method:                                                                                 */
+/*	 https://zh.wikipedia.org/wiki/HSL_and_HSV                                               */
+/*	 verify by www.rapidtables.com/convert/color/rgb-to-hsv.htm                              */
+/*===========================================================================================*/
+muError_t muRGB2HSV(const muImage_t *rgb, muImage_t *hsv)
+{
+	MU_32S i, width, height;
+	MU_32S b, g, r;
+	MU_32S max, min;
+	MU_32S data[3];
+	MU_8U *rgbData;
+	MU_16U *hsvData, h, s, v;
+	colorDataInfo_t ret;
+
+	if((rgb->depth != MU_IMG_DEPTH_8U) || (hsv->depth != MU_IMG_DEPTH_16U) || (rgb->channels != 3)) 
+	{
+		return MU_ERR_NOT_SUPPORT; 
+	}
+	
+	width = rgb->width;
+	height = rgb->height;
+	rgbData = (MU_8U *)rgb->imagedata;
+	hsvData = (MU_16U *)hsv->imagedata;
+	for(i=0; i<width*height*3; i+=3)
+	{
+		b = rgbData[i];
+		g = rgbData[i+1];
+		r = rgbData[i+2];
+
+		data[0] = r; data[1] = g; data[2] = b;
+		
+		muBubbleSort(data, 3);
+		//sort to find min and max;
+		min = data[0]; max = data[2];
+
+		ret = rgb2hsv(r, g, b, min, max);
+		//h
+		hsvData[i] = ret.data1;
+		//s
+		hsvData[i+1] = ret.data2;
+		//v
+		hsvData[i+2] = ret.data3;
+	}
+
+	return MU_ERR_SUCCESS;
+
+}
 
 /*===========================================================================================*/
 /*   muGraytoRGBA                                                                           */

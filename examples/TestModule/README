@@ -1,0 +1,7 @@
+[Linux]
+1.build muLib first
+2.into testModule and mkdir and insto build folder and cmake ../
+
+[Windows]
+1.build muLib first
+2.into testModule and make newfolder build and using windows CMake to gernate the VS Project.
