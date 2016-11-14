@@ -733,7 +733,7 @@ muError_t muRGB2XYZ(const muImage_t *src, muImage_t *dst)
 	MU_32F *data;
 	muError_t ret;
 
-	ret = muCheckDepth(4, src, MU_IMG_DEPTH_8U, dst, MU_IMG_DEPTH_8U);
+	ret = muCheckDepth(4, src, MU_IMG_DEPTH_8U, dst, MU_IMG_DEPTH_32F);
 	if(ret)
 	{
 		return ret;
@@ -803,7 +803,7 @@ muError_t muXYZ2LAB(const muImage_t *src, muImage_t *dst)
 	MU_32F *data;
 	muError_t ret;
 
-	ret = muCheckDepth(4, src, MU_IMG_DEPTH_8U, dst, MU_IMG_DEPTH_8U);
+	ret = muCheckDepth(4, src, MU_IMG_DEPTH_32F, dst, MU_IMG_DEPTH_32F);
 	if(ret)
 	{
 		return ret;
