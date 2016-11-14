@@ -1065,7 +1065,7 @@ muError_t muRemoveSubImage(muImage_t *src, const muRect_t rect, const MU_32S rep
 /****************************************************************************************\
  *          get sub RGB image to dst                                                          *
  \****************************************************************************************/
-muError_t muGetRGBImage(const muImage_t *src, muImage_t *dst, const muRect_t rect)
+muError_t muGetRGBSubImage(const muImage_t *src, muImage_t *dst, const muRect_t rect)
 {
 	MU_32S a,b,x,y;
 	MU_32S width;

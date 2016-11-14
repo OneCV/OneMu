@@ -122,6 +122,9 @@ MU_API(muError_t) muRGB2GrayLevel(const muImage_t * src, muImage_t * dst);
 /* This routine transform the yuv422 plane to the RGB. */
 MU_API(muError_t) muYUV422toRGB(const muImage_t *src, muImage_t *dst);
 
+/* This routine transform the yuv420 plane to the RGB. */
+MU_API(muError_t) muYUV420toRGB(const muImage_t *src, muImage_t *dst);
+
 /* This routine transform the RGB plane to the Hue plane. */
 MU_API(muError_t) muRGB2Hue(const muImage_t * src, muImage_t * dst);
 
