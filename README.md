@@ -5,6 +5,9 @@
 We focus on developing simple and fast vision frameworks especially for real-time vision applications.  
 The library is made by pure C and hence easy to be ported into cross-platforms.
 
+One Detector APP based on OneMu Lib
+https://youtu.be/C0w866CrsJk
+
 # License
 
 Copyright (C) 2016 Joe Lin, Chao-Ting Hong, Wonda Liu, Yu-Tong Jheng
