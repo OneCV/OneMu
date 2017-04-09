@@ -66,8 +66,8 @@ MU_API(muError_t) muSetZero( muImage_t* image );
 /* Get the sub image to dst */
 MU_API(muError_t) muGetSubImage(const muImage_t *src, muImage_t *dst, const muRect_t rect);
 
-/* Get the RGB image to dst */
-MU_API(muError_t) muGetRGBImage(const muImage_t *src, muImage_t *dst, const muRect_t rect);
+/* Get the RGB Sub image to dst */
+MU_API(muError_t) muGetRGBSubImage(const muImage_t *src, muImage_t *dst, const muRect_t rect);
 
 /* Remove the sub image from src */
 MU_API(muError_t) muRemoveSubImage(muImage_t *src, const muRect_t rect, const MU_32S replaceVal);

@@ -51,9 +51,3 @@ int testDrawRectangle(char* rgbFile)
 
 	return 0;
 }
-
-
-int testMuBase()
-{
-
-}
