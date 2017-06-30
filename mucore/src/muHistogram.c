@@ -51,153 +51,74 @@ typedef struct _Grayvalue
 
 
 /*===========================================================================================*/
-/*   muEqualization                                                                         */
+/*   muEqualization                                                                        	 */
 /*                                                                                           */
 /*   DESCRIPTION:                                                                            */
 /*   The procedure increases the contrast of the input image. (ex. over exposure, etc)       */
 /*   The histogram equalization would be utilized.                                           */
 /*                                                                                           */
 /*   NOTE                                                                                    */
+/*   https://zh.wikipedia.org/wiki/%E7%9B%B4%E6%96%B9%E5%9B%BE%E5%9D%87%E8%A1%A1%E5%8C%96    */   
 /*                                                                                           */
 /*   USAGE                                                                                   */
-/*   muImage_t *src --> input image                                                           */
-/*   muImage_t *dst --> output image                                                          */
+/*   muImage_t *src --> input image                                                          */
+/*   muImage_t *dst --> output image                                                         */
 /*                                                                                           */
 /*===========================================================================================*/
 
 muError_t muEqualization( const muImage_t* src, muImage_t* dst)
 {
-	MU_32S width, height, i, j;
+	MU_32S i, temp=0;
+	MU_32U *his;
+	MU_32U *cdfHis;
+	MU_32S cdfMin = 0x3FFFFFFFF;
+	MU_32S area;
 
-	MU_8U *in, *out;
-
-	MU_64F pr[256] = {0};
-
-	MU_32S idx2=0, idx_num = 0;
-
-	MU_64F sk[256] = {0};
-
-	MU_32S transfernum[256] = {0}, kdx, sidx;
-
-	Link *current = NULL, *temp[256] = {NULL}, *buffer = NULL;//declare the buffer to delete the linklist.
-
-	grayvalue rk[256] = { 0, NULL};
-
-	if(src->depth != MU_IMG_DEPTH_8U ||
-			dst->depth != MU_IMG_DEPTH_8U) 
+	if(src->depth != MU_IMG_DEPTH_8U || dst->depth != MU_IMG_DEPTH_8U) 
 	{
 		return MU_ERR_NOT_SUPPORT; 
 	}
 
+	his = (MU_32U *)malloc(256*sizeof(MU_32U));
+	memset(his, 0, 256*sizeof(MU_32U));
 
-	width = dst->width;
+	cdfHis = (MU_32U *)malloc(256*sizeof(MU_32U));
+	memset(cdfHis, 0, 256*sizeof(MU_32U));
 
-	height = dst->height;
-
-	in = src->imagedata;
-	out = dst->imagedata;
-
-	/*!
-	 ****************************************************************************************************************
-	 * \brief
-	 *    construt the Histogram parameter. 
-	 *    
-	 *    in: image data in[height][width]          out: rk[0].count: the total number of ro,
-	 *                                                      rk[1].count: the total number of r1,
-	 *                                                                        .
-	 *                                                                        .
-	 *                                                                        .
-	 *                                                      rk[255].ocunt: the total number of r255
-	 *                                                      and the rk[num].ptr is the first node 
-	 *                                                      which could use the link visitation to search each positin
-	 *                                                      of gray scale num.
-	*/
-
-
-	for(i = 0; i < height; i++)
+	muHistogram(src, his);
+	//find CDF
+	for(i=0; i<256; i++)
 	{
-		for(j = 0; j < width; j++)
+		if(his[i])
 		{
-			rk[ in[ i * width + j ] ].count += 1;
+			cdfHis[i] = temp+his[i];
+			temp = cdfHis[i];
+			if(cdfHis[i] < cdfMin)
+				cdfMin = cdfHis[i];
+		}
+	}
+	area = src->width*src->height;
 
-			current = (Link *) malloc ( sizeof(Link) );
-
-			current->data = i * width + j; // record the positin.
-
-			/* construt the link list visitation  */
-
-			if(rk[ in[ i * width + j ] ].ptr == NULL)
-				rk[ in[ i * width + j ] ].ptr = current;
-
-			else
-				temp[ in[ i * width + j ] ] = current;
-
-			current->add = NULL;
-
-			temp[ in[ i * width + j ] ] = current;
+	//round((cdf(v) - cdfMin)/(area-cdfMin) x 255)
+	for(i=0; i<256; i++)
+	{
+		if(cdfHis[i])
+		{
+			cdfHis[i] = muRound(((MU_64F)(((cdfHis[i]-cdfMin)/(MU_64F)(area-cdfMin)))*255.0));
 		}
 	}
 
-	/*!
-	 ********************************************************************************************
-	 * \brief
-	 *    find the probability of each pixel value.
-	 *    
-	 *  in: rk[0].count, rk[2].count,... rk[255].count    out: pr[0]~pr[255]
-	 ********************************************************************************************
-	 */	
-	while(idx2 < 256)
+	for(i=0; i<area; i++)
 	{
-		pr[idx2] = (double) ( rk[idx2].count ) / (width * height);
-
-		++idx2;
-	}//get probability.
-
-	/*!
-	 ********************************************************************************************
-	 * \brief
-	 *    find the CDF value.
-	 *    
-	 *  in: pr[0]~pr[255]    out: new gray scale:trnasfernum[0]~transfernum[255]
-	 ********************************************************************************************
-	 */	
-	for(kdx = 0; kdx < 256; kdx++)
-	{
-		for(sidx = 0; sidx <= kdx; sidx++)
-			sk[kdx] += pr[sidx];
-
-		/* find the zone in the  mapping line. */
-
-		transfernum[kdx] = sk[kdx] >= 0.9945 ? 255 : (int) (sk[kdx] / 0.0039 +1) - 1;
-
-	}//get the replace new grayscale.
-
-	/*!
-	 ********************************************************************************************
-	 * \brief
-	 *    put the new gray scale back to the record position.
-	 *    
-	 *  in: rk[0~255].ptr, transfernum[0~255]    out: out image: out[height][width]
-	 ********************************************************************************************
-	 */	
-	while(idx_num < 256)
-	{
-		while(rk[idx_num].ptr != NULL)
-		{
-			buffer = rk[idx_num].ptr;
-
-			out[ rk[idx_num].ptr->data ] = transfernum[idx_num];
-
-			rk[idx_num].ptr = rk[idx_num].ptr->add;
-
-			free( buffer );//free each node of the linklist.
-		}
-
-		++idx_num;
+		dst->imagedata[i] = cdfHis[src->imagedata[i]];
 	}
+
+	if(his)
+		free(his);
+	if(cdfHis)
+		free(cdfHis);
 
 	return MU_ERR_SUCCESS;
-
 }
 
 /*===========================================================================================*/
@@ -223,7 +144,7 @@ MU_32U* muCreateHistogram()
 muError_t muHistogram( const muImage_t* src, MU_32U *dst)
 {
 	muError_t ret;
-    MU_32S i,j;
+	MU_32S i,j;
 	ret = muCheckDepth(2, src, MU_IMG_DEPTH_8U);
 	if(ret)
 	{

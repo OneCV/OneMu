@@ -270,7 +270,9 @@ muError_t muDownScaleMemcpy420( const muImage_t* src, muImage_t* dst,  MU_32S v_
 	return MU_ERR_SUCCESS;
 }
 
-muError_t muBilinearScale(muImage_t *in, muImage_t *out)
+
+//add support RGB
+muError_t muBilinearScale(const muImage_t *in, muImage_t *out)
 {
 	MU_8U a,b,c,d;
 	MU_32S ret;
@@ -328,4 +330,112 @@ muError_t muBilinearScale(muImage_t *in, muImage_t *out)
 		}
 	
 		return MU_ERR_SUCCESS;
+}
+
+
+/*===========================================================================================*/
+/*   muImageRotate                                                                           */
+/*                                                                                           */
+/*   DESCRIPTION:                                                                            */
+/*   This routine performs a neareast image rotation           .                             */
+/*   Reference:http://edisonx.pixnet.net/blog                                                */
+/*                                                                                           */
+/*   NOTE                                                                                    */
+/*                                                                                           */
+/*   USAGE                                                                                   */
+/*   muImage_t *src --> input image                                                          */
+/*   muImage_t *rImg --> rotate image -> must release by calling function                    */
+/*   muImageRotate support one channel image as Y image and 3 channles image as RGB image    */
+/*                                                                                           */
+/*===========================================================================================*/
+muImage_t *muImageRotate(muImage_t *src, MU_64F angle)
+{
+	muImage_t *rImg = NULL;
+	muSize_t nSize;
+	MU_8U *srcTemp, *rTemp;
+	MU_64F rad;
+	MU_64F asin, acos;
+	MU_32S i,j,c;
+	MU_32S x, y;
+	MU_32S x0, y0, x1, y1, x2, y2, x3, y3;
+	MU_64F nx0, ny0, nx1, ny1, nx2, ny2, nx3, ny3;
+	MU_64F minx, miny, maxx, maxy;
+	MU_64F hw, hh, nhw, nhh;
+	MU_64F ox, oy;
+
+	if(src->channels != 3 && src->channels != 1)
+	{
+		MU_DBG("muImageRotate only support channel=1 or 3\n");
+		return rImg;
+	}
+
+	rad = (MU_PI/180.0)*angle;
+	acos = cos(rad);
+	asin = sin(rad);
+
+	//get new width and 	
+	x0 = 0; y0 = 0;
+	x1 = src->width-1; y1= 0;
+	x2 = 0; y2= src->height-1;
+	x3 = src->width-1; y3 = src->height-1;
+
+	nx0 = x0*acos - y0*asin;  ny0 = x0*asin + y0*acos;
+	nx1 = x1*acos - y1*asin;  ny1 = x1*asin + y1*acos;
+	nx2 = x2*acos - y2*asin;  ny2 = x2*asin + y2*acos;
+	nx3 = x3*acos - y3*asin;  ny3 = x3*asin + y3*acos;
+	
+	minx = MU_MIN(nx3,MU_MIN(nx2, MU_MIN(nx0, nx1)));
+	miny = MU_MIN(ny3,MU_MIN(ny2, MU_MIN(ny0, ny1)));
+	maxx = MU_MAX(nx3,MU_MAX(nx2, MU_MAX(nx0, nx1)));
+	maxy = MU_MAX(ny3,MU_MAX(ny2, MU_MAX(ny0, ny1)));
+
+	nSize.width = muRound(maxx-minx);
+	nSize.height = muRound(maxy-miny);
+	
+	if(src->channels == 1)
+		rImg = muCreateImage(nSize, MU_IMG_DEPTH_8U, 1);
+	else if(src->channels == 3)
+		rImg = muCreateImage(nSize, MU_IMG_DEPTH_8U, 3);
+
+	muSetZero(rImg);
+
+	srcTemp = (MU_8U *)src->imagedata;
+	rTemp = (MU_8U *)rImg->imagedata;
+	hw = (src->width/2); hh = (src->height/2);
+	nhw = (rImg->width/2); nhh = (rImg->height/2);
+
+	ox = -nhw * acos - nhh * asin + hw;
+	oy = nhw * asin - nhh * acos + hh;
+	
+	if(rImg->channels == 1)
+	{
+		for(j=0; j<rImg->height; j++)
+			for(i=0; i<rImg->width; i++)
+			{	
+				x = muRound(i*acos+j*asin + ox);
+				y = muRound(-i*asin+j*acos + oy);
+				if((x > 0 && x<src->width) && y > 0 && y<src->height)
+				{
+					rTemp[i+rImg->width*j] = srcTemp[x+src->width*y];
+				}
+			}
+	}
+	else
+	{
+		c = rImg->channels;
+		for(j=0; j<rImg->height; j++)
+			for(i=0; i<rImg->width; i++)
+			{	
+				x = muRound(i*acos+j*asin + ox);
+				y = muRound(-i*asin+j*acos + oy);
+				if((x > 0 && x<src->width) && y > 0 && y<src->height)
+				{
+					rTemp[(i+rImg->width*j)*c] = srcTemp[(x+src->width*y)*c];
+					rTemp[(i+rImg->width*j)*c+1] = srcTemp[(x+src->width*y)*c+1];
+					rTemp[(i+rImg->width*j)*c+2] = srcTemp[(x+src->width*y)*c+2];
+				}
+			}
+	}
+
+	return rImg;
 }

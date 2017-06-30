@@ -59,7 +59,7 @@ MU_API(muError_t) muPrewitt( const muImage_t* src, muImage_t* dst);
 MU_API(muError_t) muCannyEdge(const muImage_t *src, muImage_t *dst, muDoubleThreshold_t th);
 
 /* Edge-based no reference blur metric */
-MU_API(muError_t) muNoRefBlurMetric(muImage_t *src, MU_32S *bm);
+MU_API(muError_t) muNoRefBlurMetric(muImage_t *src, MU_64F *bm);
 
 /****************** Sampling, Interpolation and Geometrical Transforms ******************/
 
@@ -84,6 +84,10 @@ MU_API(muError_t) muDownScaleMemcpy422( const muImage_t* src, muImage_t* dst, MU
 
 /* DownScale */
 MU_API(muError_t) muDownScaleMemcpy420( const muImage_t* src, muImage_t* dst, MU_32S v_scale, MU_32S h_scale);
+
+/* Neareast Image Rotation */
+MU_API(muImage_t*) muImageRotate(const muImage_t *src, MU_64F angle);
+
 /*************************** Filters and Color Conversion *******************************/
 
 #define MU_BORDER_NONE      0 // (default and only support currently)
@@ -118,6 +122,9 @@ MU_API(muError_t) muMeanThresholding(const muImage_t *src, muImage_t *dst, MU_8U
 
 /* This routine transform the RGB plane to the Y plane. */
 MU_API(muError_t) muRGB2GrayLevel(const muImage_t * src, muImage_t * dst);
+
+/* This routine transform the Y plane to the RGB plane. */
+MU_API(muError_t) muGrayLevel2RGB(const muImage_t *src, muImage_t *dst);
 
 /* This routine transform the yuv422 plane to the RGB. */
 MU_API(muError_t) muYUV422toRGB(const muImage_t *src, muImage_t *dst);

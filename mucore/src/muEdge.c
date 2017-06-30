@@ -266,15 +266,15 @@ static blurInfo_t *calEdgeWidth(MU_8U *content, MU_32S length)
 	blurInfo_t *info;
 	MU_32S i;
 	MU_32S totalEdge = 0, edgeWidth = 0;
-	MU_8U curData, lastData = 0, nextData;
+	MU_8U curData, lastData = 0;
 	MU_8U maxData = 0, minData = 255;
 	MU_8U conFlag = 0;
 	MU_8U *data;
 	MU_8U firstFlag = 1;
-	muSeqBlock_t *current, *head;
+	muSeqBlock_t *current;
 	muSeq_t *localList;
 	localList_t listData, *list;
-	MU_32S maxPos, minPos, diff, lastMax, lastMin;
+	MU_32S maxPos, minPos;
 
 	data = content;
 	localList = muCreateSeq(sizeof(localList_t));
@@ -358,16 +358,15 @@ static blurInfo_t *calEdgeWidth(MU_8U *content, MU_32S length)
 /*   muImage_t *src --> input image                                                          */
 /*   *bm --> return blur metric value                                                        */
 /*===========================================================================================*/
-muError_t muNoRefBlurMetric(muImage_t *src, MU_32S *bm)
+muError_t muNoRefBlurMetric(muImage_t *src, MU_64F *bm)
 {
 	MU_16S temp; 
 	MU_32S i,j, index;
-	MU_32S gx,gy;
+	MU_32S gy;
 	MU_32S width, height;
 	MU_8U *in, *out;
 	muImage_t *dst, *gray, *edgeImg;
 	muSize_t size;
-	muError_t ret;
 	blurInfo_t *blurInfo;
 	MU_32U totalEdge = 0;
 	MU_32U totalEdgeWidth = 0;
@@ -423,13 +422,15 @@ muError_t muNoRefBlurMetric(muImage_t *src, MU_32S *bm)
 	}
 
 	if(totalEdge <= 0)
-		printf("nan");
+		MU_DBG("total edge : nan");
 	else
-		MU_DBG("blurmetric: %f\n", ((MU_64F)totalEdgeWidth/(MU_64F)totalEdge));
+		*bm = (totalEdgeWidth/(MU_64F)totalEdge);
 
 	muReleaseImage(&dst);
 	muReleaseImage(&gray);
 	muReleaseImage(&edgeImg);
+
+	return MU_ERR_SUCCESS;
 }
 
 
@@ -439,7 +440,7 @@ muError_t muNoRefBlurMetric(muImage_t *src, MU_32S *bm)
 static muError_t nonMaxSuppress(const muImage_t *magImg, muImage_t *dirImg, muImage_t *cannyImg, muDoubleThreshold_t th, MU_32S offset)
 {
 
-	MU_32S i, j, temp;
+	MU_32S i, j;
 	MU_32S width, height;
 	muSize_t size;
 	muError_t ret;
@@ -626,7 +627,6 @@ muError_t edgeFilter(muImage_t *src, muImage_t *mag, muImage_t *dirImg, const MU
 	MU_32S i,j;
 	MU_32S width, height;
 	MU_32S gx, gy, gm;
-	MU_32S tempx, tempy;
 	MU_16S *in, *out;
 	MU_8U *dir, degree;
 	MU_64F degreeTemp;
