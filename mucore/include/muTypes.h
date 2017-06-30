@@ -161,8 +161,8 @@ typedef enum _muResolution
 #define MU_PI   3.1415926535897932384626433832795F
 #define MU_LOG2 0.69314718055994530941723212145818F
 
-#define MU_MAX(a,b) a>=b?a:b
-#define MU_MIN(a,b) a<=b?a:b
+#define MU_MAX(a,b) (a) >= (b) ? (a) : (b)
+#define MU_MIN(a,b) (a) <= (b) ? (a) : (b)
 #define MU_IMIN(a,b) ((a) ^ (((a)^(b)) & (((a) < (b)) - 1)))
 
 #define MU_DBG(fmt, ...)	printf("[MULIB]"fmt,##__VA_ARGS__)

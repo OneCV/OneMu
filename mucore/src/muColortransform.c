@@ -372,20 +372,18 @@ muError_t muYUV422toRGB(const muImage_t *src, muImage_t *dst)
 
 
 /*===========================================================================================*/
-/*   muRGB2GaryLevel                                                                        */
+/*   muRGB2GaryLevel                                                                         */
 /*                                                                                           */
 /*   DESCRIPTION:                                                                            */
 /*                                                                                           */
 /*   NOTE                                                                                    */
-/*   This routine would be modified the original data.                                       */
+/*   RGB to Gray level                                                                       */
 /*                                                                                           */
 /*   USAGE                                                                                   */
-/*   muImage_t *src --> input image                                                           */
+/*   muImage_t *src --> input image                                                          */
 /*===========================================================================================*/
-
 muError_t muRGB2GrayLevel(const muImage_t *src, muImage_t *dst)
 {
-
 	MU_8U r,g,b;
 	MU_16U y;
 	MU_32S i, x;
@@ -409,7 +407,7 @@ muError_t muRGB2GrayLevel(const muImage_t *src, muImage_t *dst)
 	in = src->imagedata;
 	out = dst->imagedata;
 
-	for(i=0,x=0; i<(width*height)*3; i+=3,x++)
+	for(i=0,x=0; i<(width*height)*src->channels; i+=src->channels,x++)
 	{
 		r = in[i]; b = in[i+1]; g = in[i+2];
 		y = (MU_16U)((((0.299*r) + (0.587*g) + (0.114*b))));
@@ -420,6 +418,49 @@ muError_t muRGB2GrayLevel(const muImage_t *src, muImage_t *dst)
 }
 
 
+/*===========================================================================================*/
+/*   muGaryLevel2RGB                                                                         */
+/*                                                                                           */
+/*   DESCRIPTION:                                                                            */
+/*                                                                                           */
+/*   NOTE                                                                                    */
+/*   GrayLevel to RGB                                                                        */
+/*                                                                                           */
+/*   USAGE                                                                                   */
+/*   muImage_t *src --> input image                                                          */
+/*===========================================================================================*/
+muError_t muGrayLevel2RGB(const muImage_t *src, muImage_t *dst)
+{
+	MU_32S i, x;
+	MU_32S width, height;
+	MU_8U *in, *out;
+	muError_t ret;
+
+	ret = muCheckDepth(4, src, MU_IMG_DEPTH_8U, dst, MU_IMG_DEPTH_8U);
+	if(ret)
+	{
+		return ret;
+	}
+
+	if(src->channels != 1 || dst->channels != 3)
+	{
+		return MU_ERR_NOT_SUPPORT;
+	}
+
+	width = src->width;
+	height = src->height;
+	in = src->imagedata;
+	out = dst->imagedata;
+
+	for(i=0,x=0; i<(width*height)*dst->channels; i+=dst->channels,x++)
+	{
+		out[i] = in[x];
+		out[i+1] = in[x];
+		out[i+2] = in[x];
+	}
+
+	return MU_ERR_SUCCESS;
+}
 
 
 /*===========================================================================================*/
@@ -623,7 +664,7 @@ muError_t muRGB2HSV(const muImage_t *rgb, muImage_t *hsv)
 	MU_32S max, min;
 	MU_32S data[3];
 	MU_8U *rgbData;
-	MU_16U *hsvData, h, s, v;
+	MU_16U *hsvData;
 	colorDataInfo_t ret;
 
 	if((rgb->depth != MU_IMG_DEPTH_8U) || (hsv->depth != MU_IMG_DEPTH_16U) || (rgb->channels != 3)) 
@@ -675,8 +716,8 @@ muError_t muGraytoRGBA(const muImage_t *src, muImage_t *dst)
 {
 	MU_32U *outData;
 	MU_8U *inData;
-	MU_32S i,j;
-	MU_32S width, height, channels;
+	MU_32S i;
+	MU_32S width, height;
 	MU_8U tempData;
 	MU_32U outTempData;
 	muError_t ret;
@@ -710,7 +751,53 @@ muError_t muGraytoRGBA(const muImage_t *src, muImage_t *dst)
 
 }
 
+/*===========================================================================================*/
+/*   muGraytoRGB                                                                             */
+/*                                                                                           */
+/*   DESCRIPTION:                                                                            */
+/*   transfer the Gray level image to RGB 24Bits                                             */
+/*   NOTE                                                                                    */
+/*   This routine would be modified the original data.                                       */
+/*                                                                                           */
+/*   USAGE                                                                                   */
+/*   muImage_t *src --> input image                                                          */
+/*===========================================================================================*/
+muError_t muGraytoRGB(const muImage_t *src, muImage_t *dst)
+{
+	MU_8U *outData;
+	MU_8U *inData;
+	MU_32S i,j;
+	MU_32S width, height;
+	muError_t ret;
 
+	ret = muCheckDepth(4, src, MU_IMG_DEPTH_8U, dst, MU_IMG_DEPTH_8U);
+	if(ret)
+	{
+		return ret;
+	}
+
+	if(src->channels != 1 || dst->channels != 3)
+	{
+		return MU_ERR_NOT_SUPPORT;
+	}
+
+	width = src->width;
+	height = src->height;
+
+	
+	outData = (MU_8U *)dst->imagedata;
+	inData = (MU_8U *)src->imagedata;
+
+	for(i=0, j=0; j<width*height; i+=3, j++)
+	{
+		outData[i] = inData[j];
+		outData[i+1] = inData[j];
+		outData[i+2] = inData[j];
+	}
+
+	return MU_ERR_SUCCESS;
+
+}
 /*===========================================================================================*/
 /*   muRGBtoXYZ                                                                              */
 /*                                                                                           */
@@ -725,11 +812,10 @@ muError_t muGraytoRGBA(const muImage_t *src, muImage_t *dst)
 
 muError_t muRGB2XYZ(const muImage_t *src, muImage_t *dst)
 {
-	MU_16U y;
-	MU_32S i, x;
+	MU_32S i;
 	MU_32S width, height;
 	MU_32F r,g,b;
-	MU_8U *in, *out;
+	MU_8U *in;
 	MU_32F *data;
 	muError_t ret;
 

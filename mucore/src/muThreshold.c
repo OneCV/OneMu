@@ -53,7 +53,7 @@ typedef struct _Otsuparameter{
 		int MeanB;
 		int MeanO;
 }Otsuparameter;
-
+// has bug ... Joe 2017 06
 /* Test on 400MHZ SOC which cost 0.8s for D1 resolution */
 muError_t muOtsuThresholding(const muImage_t * src, muImage_t * dst)
 {

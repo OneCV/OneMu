@@ -1039,8 +1039,7 @@ muError_t muRemoveSubImage(muImage_t *src, const muRect_t rect, const MU_32S rep
 {
 	MU_32S a,b,x,y;
 	MU_32S width;
-	MU_8U *in, *out;
-	muError_t ret;
+	MU_8U *in;
 
 
 	if(src->channels != 1)
@@ -1195,6 +1194,217 @@ muError_t muCheckDepth(MU_32S amount, ...)
 	return MU_ERR_SUCCESS; 
 }
 
+
+
+/****************************************************************************************\
+ *          Draw Rectangle function                                                      *
+ *			Exampel to use: 															 *
+ *				muError_t ret;															 *
+ *				ret = muDrawRectangle(testImage, p1, p2, 'g');							 *
+ *																						 *
+ *			p1 is the start point (upper left) and p2 is the end point (lower right)	 *
+ *			Increase Border for drawing Rectangle                                        *
+ \****************************************************************************************/
+/* Draw Rectangle */
+muError_t muDrawRectangle(muImage_t *SrcImg, muPoint_t p1, muPoint_t p2, MU_8S color)
+{
+	MU_32S i, j;
+	MU_32S offset, offset2, step, step2;
+	MU_32S border1, border2;
+	MU_32S Ch_tmp;
+	MU_32S Ch_width;
+	MU_8U b = 0, g = 0, r = 0;
+	
+	if(SrcImg->channels != 3 && SrcImg->channels != 1)
+	{
+		return MU_ERR_NOT_SUPPORT;
+	}
+	
+	Ch_width = SrcImg->width*SrcImg->channels;
+
+	Ch_tmp = p2.x * SrcImg->channels;
+
+	//select color ()
+	switch(color)
+	{
+		case 'r':
+			r=255;
+			break;
+		case 'g':
+			g=255;
+			break;
+		case 'b':
+			b=255;
+			break;
+
+		default:
+			break;
+	}
+	//Draw x axis
+	j = p1.x * SrcImg->channels;
+
+	//internal 1 border
+	step = p1.y*Ch_width;
+	step2 = p2.y*Ch_width;
+
+	while(j<=Ch_tmp)
+	{	//min x axis
+		offset = j+step;
+		//max x axis
+		offset2 = j+step2;
+
+		if(SrcImg->channels == 3)
+		{
+			SrcImg->imagedata[offset] = b;
+			SrcImg->imagedata[offset+1] = g;
+			SrcImg->imagedata[offset+2] = r;
+			if(p1.y + 1 < SrcImg->height)
+			{
+				border1 = 1*Ch_width;
+				SrcImg->imagedata[offset+border1] = b;
+				SrcImg->imagedata[offset+1+border1] = g;
+				SrcImg->imagedata[offset+2+border1] = r;
+			}
+			if(p1.y - 2 < SrcImg->height)
+			{
+				border2 = 2*Ch_width;
+				SrcImg->imagedata[offset+border2] = b;
+				SrcImg->imagedata[offset+1+border2] = g;
+				SrcImg->imagedata[offset+2+border2] = r;
+			}
+			SrcImg->imagedata[offset2] = b;
+			SrcImg->imagedata[offset2+1] = g;
+			SrcImg->imagedata[offset2+2] = r;
+			if(p2.y - 1 < SrcImg->height)
+			{
+				border1 = 1*Ch_width;
+				SrcImg->imagedata[offset2-border1] = b;
+				SrcImg->imagedata[offset2+1-border1] = g;
+				SrcImg->imagedata[offset2+2-border1] = r;
+			}
+			if(p2.y - 2 < SrcImg->height)
+			{
+				border2 = 2*Ch_width;
+				SrcImg->imagedata[offset2-border2] = b;
+				SrcImg->imagedata[offset2+1-border2] = g;
+				SrcImg->imagedata[offset2+2-border2] = r;
+			}
+		}
+		else if(SrcImg->channels == 1)
+		{
+			SrcImg->imagedata[offset] = 255;
+			if(p1.y + 1 < SrcImg->height)
+			{
+				border1 = 1*Ch_width;
+				SrcImg->imagedata[offset+border1] = 255;
+			}
+			if(p1.y - 2 < SrcImg->height)
+			{
+				border2 = 2*Ch_width;
+				SrcImg->imagedata[offset+border2] = 255;
+			}
+			SrcImg->imagedata[offset2] = 255;
+			if(p2.y - 1 < SrcImg->height)
+			{
+				border1 = 1*Ch_width;
+				SrcImg->imagedata[offset2-border1] = 255;
+			}
+			if(p2.y - 2 < SrcImg->height)
+			{
+				border2 = 2*Ch_width;
+				SrcImg->imagedata[offset2-border2] = 255;
+			}
+		}
+
+		j+=SrcImg->channels;
+	}
+	//================================================
+    //Draw y axis
+	i = p1.y;
+	j = p1.x * SrcImg->channels;
+
+	step = Ch_tmp-j;
+	offset = j+i*Ch_width;
+ 	offset2 = offset+step;
+
+	while(i<=p2.y)
+	{	
+		if(SrcImg->channels == 3)
+		{
+			SrcImg->imagedata[offset] = b;
+			SrcImg->imagedata[offset+1] = g;
+			SrcImg->imagedata[offset+2] = r;
+
+			if(p1.x + 1 < SrcImg->width)
+			{
+				border1 = SrcImg->channels;
+				SrcImg->imagedata[offset+border1] = b;
+				SrcImg->imagedata[offset+1+border1] = g;
+				SrcImg->imagedata[offset+2+border1] = r;
+			}
+			if(p1.x + 2 < SrcImg->width)
+			{
+				border2 = SrcImg->channels*2;
+				SrcImg->imagedata[offset+border2] = b;
+				SrcImg->imagedata[offset+1+border2] = g;
+				SrcImg->imagedata[offset+2+border2] = r;
+			}
+
+			SrcImg->imagedata[offset2] = b;
+			SrcImg->imagedata[offset2+1] = g;
+			SrcImg->imagedata[offset2+2] = r;
+			if(p2.x - 1 < SrcImg->width)
+			{
+				border1 = SrcImg->channels;
+				SrcImg->imagedata[offset2-border1] = b;
+				SrcImg->imagedata[offset2+1-border1] = g;
+				SrcImg->imagedata[offset2+2-border1] = r;
+			}
+			if(p2.x - 2 < SrcImg->width)
+			{
+				border2 = SrcImg->channels*2;
+				SrcImg->imagedata[offset2-border2] = b;
+				SrcImg->imagedata[offset2+1-border2] = g;
+				SrcImg->imagedata[offset2+2-border2] = r;
+			}
+		}
+		else if(SrcImg->channels == 1)
+		{
+			SrcImg->imagedata[offset] = 255; 
+			if(p1.x + 1 < SrcImg->width)
+			{
+				border1 = SrcImg->channels;
+				SrcImg->imagedata[offset+border1] = 255;
+			}
+			if(p1.x + 2 < SrcImg->width)
+			{
+				border2 = SrcImg->channels*2;
+				SrcImg->imagedata[offset+border2] = 255;
+			}
+			SrcImg->imagedata[offset2] = 255;
+			if(p2.x - 1 < SrcImg->width)
+			{
+				border1 = SrcImg->channels;
+				SrcImg->imagedata[offset2-border1] = 255;
+			}
+			if(p2.x - 2 < SrcImg->width)
+			{
+				border2 = SrcImg->channels*2;
+				SrcImg->imagedata[offset2-border2] = 255;
+			}
+		}
+
+		//min y axis
+		offset += Ch_width;
+		//max y axis
+ 		offset2 = offset+step;
+		i++;
+	}
+
+	return MU_ERR_SUCCESS;
+}
+
+
 /****************************************************************************************\
  *          debug function                                                                *
  \****************************************************************************************/
@@ -1227,114 +1437,4 @@ MU_VOID muDebugError(muError_t errorcode)
 
 	}
 
-}
-
-/****************************************************************************************\
- *          Draw Rectangle function                                                      *
- *			Exampel to use: 															 *
- *				muError_t ret;															 *
- *				ret = muDrawRectangle(testImage, p1, p2, 'g');							 *
- *																						 *
- *			p1 is the start point (upper left) and p2 is the end point (lower right)	 *
- \****************************************************************************************/
-/* Draw Rectangle */
-muError_t muDrawRectangle(muImage_t *SrcImg, muPoint_t p1, muPoint_t p2, MU_8S color)
-{
-	MU_32S i, j;
-	MU_32S offset, offset2, step, step2;
-	MU_32S Ch_tmp;
-	MU_32S Ch_width;
-	MU_8U b = 0, g = 0, r = 0;
-	
-	//if(SrcImg->channels != 3 || SrcImg->channels != 1)
-	if(SrcImg->channels != 3 && SrcImg->channels != 1)
-	{
-		return MU_ERR_NOT_SUPPORT;
-	}
-	
-	Ch_width = SrcImg->width*SrcImg->channels;
-
-	Ch_tmp = p2.x * SrcImg->channels;
-
-	//select color ()
-	switch(color)
-	{
-		case 'r':
-			r=255;
-			break;
-		case 'g':
-			g=255;
-			break;
-		case 'b':
-			b=255;
-			break;
-
-		default:
-			break;
-	}
-	//Draw x axis
-	j = p1.x * SrcImg->channels;
-
-	step = p1.y*Ch_width;
-	step2 = p2.y*Ch_width;
-
-	while(j<=Ch_tmp)
-	{	//min x axis
-		offset = j+step;
-		//max x axis
-		offset2 = j+step2;
-
-		if(SrcImg->channels == 3)
-		{
-			SrcImg->imagedata[offset] = b;
-			SrcImg->imagedata[offset+1] = g;
-			SrcImg->imagedata[offset+2] = r;
-		
-			SrcImg->imagedata[offset2] = b;
-			SrcImg->imagedata[offset2+1] = g;
-			SrcImg->imagedata[offset2+2] = r;
-		}
-		else if(SrcImg->channels == 1)
-		{
-			SrcImg->imagedata[offset] = 255;
-			SrcImg->imagedata[offset2] = 255;
-		}
-
-		j+=SrcImg->channels;
-	}
-	//================================================
-    //Draw y axis
-	i = p1.y;
-	j = p1.x * SrcImg->channels;
-
-	step = Ch_tmp-j;
-	offset = j+i*Ch_width;
- 	offset2 = offset+step;
-
-	while(i<=p2.y)
-	{	
-		if(SrcImg->channels == 3)
-		{
-			SrcImg->imagedata[offset] = b;
-			SrcImg->imagedata[offset+1] = g;
-			SrcImg->imagedata[offset+2] = r;
-
-			SrcImg->imagedata[offset2] = b;
-			SrcImg->imagedata[offset2+1] = g;
-			SrcImg->imagedata[offset2+2] = r;
-		}
-		else if(SrcImg->channels == 1)
-		{
-			SrcImg->imagedata[offset] =255; 
-			SrcImg->imagedata[offset2] = 255;
-		}
-
-		//min y axis
-		offset += Ch_width;
-		//max y axis
- 		offset2 = offset+step;
-		i++;
-	}
-
-	return MU_ERR_SUCCESS;
 }
