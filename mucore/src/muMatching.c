@@ -447,8 +447,8 @@ muError_t muSSIM(const muImage_t *src1, const muImage_t *src2, MU_64F *ssim)
 		muReleaseImage(&b2);
 		muReleaseImage(&g2);
 	}
-	
-	return MU_ERR_SUCCESS;
+
+	return;
 }
 
 

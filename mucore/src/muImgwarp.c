@@ -348,7 +348,7 @@ muError_t muBilinearScale(const muImage_t *in, muImage_t *out)
 /*   muImageRotate support one channel image as Y image and 3 channles image as RGB image    */
 /*                                                                                           */
 /*===========================================================================================*/
-muImage_t *muImageRotate(const muImage_t *src, MU_64F angle)
+muImage_t *muImageRotate(muImage_t *src, MU_64F angle)
 {
 	muImage_t *rImg = NULL;
 	muSize_t nSize;
