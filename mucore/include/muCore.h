@@ -77,7 +77,7 @@ MU_API(muError_t) muDownScale( const muImage_t* src, muImage_t* dst, MU_32S v_sc
 MU_API(muError_t) muDownScaleMemcpy( const muImage_t* src, muImage_t* dst, MU_32S v_scale, MU_32S h_scale);
 
 /* Bilinear Scaling support down/up scale by bi-linear */
-MU_API(muError_t) muBilinearScale(muImage_t *in, muImage_t *out);
+MU_API(muError_t) muBilinearScale( const muImage_t *in, muImage_t *out);
 
 /* DownScale */
 MU_API(muError_t) muDownScaleMemcpy422( const muImage_t* src, muImage_t* dst, MU_32S v_scale, MU_32S h_scale);
