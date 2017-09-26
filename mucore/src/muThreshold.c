@@ -288,7 +288,7 @@ muError_t muOtsuThresholding(const muImage_t * src, muImage_t * dst)
 
 			owidx = (Idxnum % iwidth);
 		
-			if(outidx <= Candidateflag)
+			if(outidx <= Candidateflag || (ohidx == 0) || (owidx == 0) || (ohidx == (iheight-1)) || (owidx == (iwidth-1)))
 				OutData[ohidx*iwidth+owidx ] = 0;
 			else
 				OutData[ohidx*iwidth+owidx ] = 255;
