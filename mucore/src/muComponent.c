@@ -96,8 +96,8 @@ muError_t mu4ConnectedComponent8u(muImage_t * src, muImage_t * dst, MU_8U *numla
 	if(in != out)
 		memcpy(out, in, width*height*(src->depth&0x00ff));
 
-	tempbuffer = (MU_8U *)malloc(255*sizeof(MU_8U));
-	memset(tempbuffer, 0, 255);
+	tempbuffer = (MU_8U *)malloc(256*sizeof(MU_8U));
+	memset(tempbuffer, 0, 256);
 
 
 	for(y=0; y<(height-1); y++)
@@ -222,7 +222,8 @@ muError_t mu4ConnectedComponent8u(muImage_t * src, muImage_t * dst, MU_8U *numla
 
 	if(labelcount > 253)
 	{
-		printf("[mu4ConnectedComponent8u] label quantity cannot larger than 253\n");
+		MU_DBG("[mu4ConnectedComponent8u] label quantity cannot larger than 253\n");
+		labelcount = 253;
 	}
 
 	*numlabel = (MU_8U)labelcount;

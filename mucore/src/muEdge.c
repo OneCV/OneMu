@@ -422,7 +422,10 @@ muError_t muNoRefBlurMetric(muImage_t *src, MU_64F *bm)
 	}
 
 	if(totalEdge <= 0)
-		MU_DBG("total edge : nan");
+	{
+		MU_DBG("total edge : nan\n");
+		*bm = 99999.0;
+	}
 	else
 		*bm = (totalEdgeWidth/(MU_64F)totalEdge);
 
